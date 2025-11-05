@@ -1,1 +1,1 @@
-oña 
+oña puto gio
