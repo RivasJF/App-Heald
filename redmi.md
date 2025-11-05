@@ -1,1 +1,1 @@
-oña puto gio
+Configurar text
