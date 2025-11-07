@@ -1,6 +1,9 @@
 import { StyleSheet, Text, View, Button, ActivityIndicator, ScrollView } from 'react-native';
 import { useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
+import { Stack, useRouter } from 'expo-router';
+
+const colors=['#841584']
 
 export default function Testback() {
   const [data, setData] = useState(null);
@@ -34,7 +37,19 @@ export default function Testback() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Press the button to fetch data!</Text>
+      <Stack.Screen options={{
+        title: 'Test BACKEND',
+        headerTitleAlign: 'center',
+        headerStyle: {
+          backgroundColor: '#f5f5f5',
+        },
+        headerTitleStyle: {
+            fontWeight: 'bold',
+        },
+        headerTintColor: colors[0],
+
+      }}/>
+      <Text style={styles.title}>Precionar para consultar a backend!</Text>
       <Button title="Fetch Data" onPress={fetchData} color="#841584" />
 
       {loading && <ActivityIndicator size="large" color="#0000ff" />}

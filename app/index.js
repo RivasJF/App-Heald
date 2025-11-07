@@ -1,6 +1,8 @@
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View, Button } from 'react-native';
-import { useRouter } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
+
+const colors=['#841584']
 
 export default function Index() {
   const router = useRouter();
@@ -11,10 +13,23 @@ export default function Index() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Welcome to Heald!</Text>
-      <Text style={styles.subtitle}>Your personal health assistant.</Text>
+      <Stack.Screen options={{
+        title: 'Home',
+        headerTitleAlign: 'center',
+        headerStyle: {
+          backgroundColor: '#f5f5f5',
+        },
+        headerTitleStyle: {
+            fontWeight: 'bold',
+        },
+        headerTintColor: colors[0],
+
+      }}/>
+      <Text style={styles.title}>Bienvenido a Heald!</Text>
+      <Text style={styles.subtitle}>Creador de citas remoto.</Text>
+
       <View style={styles.buttonContainer}>
-        <Button title="Go to Test Page" onPress={changeRoute} color="#841584" />
+        <Button title="Pagina de Backend" onPress={changeRoute} color={colors[0]} />
       </View>
       <StatusBar style="auto" />
     </View>
