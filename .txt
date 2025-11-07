@@ -1,0 +1,27 @@
+mi-proyecto-expo/
+├── app/                          // Las rutas/pantallas de Expo Router
+│   ├── (tabs)/                   // Ejemplo de un grupo con pestañas
+│   │   ├── _layout.jsx
+│   │   ├── home.jsx              // Ruta: /home
+│   │   └── profile.jsx           // Ruta: /profile
+│   ├── auth.jsx                  // Ruta: /auth (Login/Registro)
+│   ├── index.jsx                 // Ruta: / (Página principal)
+│   └── _layout.jsx               // Layout raíz (donde se configura el Provider)
+│
+├── src/                          // Lógica de la aplicación
+│   ├── api/                      // Cliente de Axios y Configuración de QueryClient
+│   │   ├── axiosClient.js
+│   │   └── queryClient.js
+│   │
+│   ├── components/               // Componentes reutilizables
+│   │   └── ...
+│   │
+│   ├── services/                 // Las funciones que consultan al backend
+│   │   ├── userService.js        // useFetchUser, useLogin...
+│   │   └── productService.js
+│   │
+│   └── utils/
+│       └── ...
+│
+├── App.js                        // NO se usa, Expo Router lo maneja.
+└── ...
