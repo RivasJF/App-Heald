@@ -13,18 +13,7 @@ export default function Index() {
 
   return (
     <View style={styles.container}>
-      <Stack.Screen options={{
-        title: 'Home',
-        headerTitleAlign: 'center',
-        headerStyle: {
-          backgroundColor: '#f5f5f5',
-        },
-        headerTitleStyle: {
-            fontWeight: 'bold',
-        },
-        headerTintColor: colors[0],
-
-      }}/>
+      <Stack.Screen options={{headerShown: false}}/>
       <Text style={styles.title}>Bienvenido a Heald!</Text>
       <Text style={styles.subtitle}>Creador de citas remoto.</Text>
 
