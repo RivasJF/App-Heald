@@ -25,3 +25,38 @@ mi-proyecto-expo/
 │
 ├── App.js                        // NO se usa, Expo Router lo maneja.
 └── ...
+
+
+/app
+  ├── _layout.js                  // Decide: si está logueado → (app) / si no → (auth)
+
+  ├── (auth)/
+  │     ├── _layout.js            // Layout auth (sin tabs)
+  │     ├── login.js
+  │     ├── register.js
+  │     ├── forgot-password.js
+
+  ├── (app)/
+        ├── _layout.js            // Layout principal autenticado
+
+        ├── (cliente)/
+        │     ├── _layout.js      // Tabs exclusivas cliente (Inicio, Citas, Perfil)
+        │     ├── index.js        // Home cliente
+        │     ├── citas/
+        │     │     ├── index.js        // Ver citas
+        │     │     ├── crear.js        // Crear cita
+        │     │     ├── [id].js         // Detalle cita
+        │     ├── perfil/
+        │           ├── index.js
+        │           ├── editar.js
+
+        ├── (doctor)/
+              ├── _layout.js      // Tabs exclusivas doctor
+              ├── index.js        // Home doctor
+              ├── citas/
+              │     ├── index.js
+              │     ├── hoy.js
+              │     ├── [id].js
+              ├── consultorio/
+                    ├── index.js
+                    ├── editar.js
