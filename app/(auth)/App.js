@@ -6,7 +6,7 @@ export default function App() {
   return (
     <View style={styles.container}>
 
-      <Text style={styles.title}>Bienvenido a CITA CLICK!</Text>
+      <Text style={styles.title}>Bienvenido a Health Medic!</Text>
 
       <TextInput
         style={styles.input}
