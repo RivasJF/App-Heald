@@ -1,7 +1,8 @@
+import { router } from "expo-router";
 import { useState } from "react";
 import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 
-export default function DoctorForm({ navigation }) {
+export default function DoctorForm() {
 
 const days = ["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"];
 
@@ -19,7 +20,6 @@ return (
     <ScrollView style={styles.container}>
     <Text style={styles.title}>Registro de Consultorio</Text>
 
-      {/* Datos principales */}
     <Text style={styles.label}>Nombre del doctor</Text>
     <TextInput style={styles.input} placeholder="Dr. Juan Pérez" />
 
@@ -29,7 +29,6 @@ return (
     <Text style={styles.label}>Teléfono del consultorio</Text>
     <TextInput style={styles.input} placeholder="55 1234 5678" keyboardType="phone-pad" />
 
-      {/* Dirección */}
     <Text style={styles.section}>Dirección del consultorio</Text>
 
     <TextInput style={styles.input} placeholder="Calle y Número" />
@@ -39,7 +38,6 @@ return (
     <TextInput style={styles.input} placeholder="Código postal" keyboardType="numeric" />
     <TextInput style={styles.input} placeholder="Referencia adicional" />
 
-      {/* Horarios */}
     <Text style={styles.section}>Horarios de Atención</Text>
     <Text style={styles.subText}>Define cada día por separado</Text>
 
@@ -64,10 +62,9 @@ return (
         </View>
     ))}
 
-      {/* Botón continuar */}
     <TouchableOpacity
         style={styles.button}
-        onPress={() => navigation.navigate("App")}
+        onPress={() => router.push("/login")}
     >
         <Text style={styles.buttonText}>Continuar</Text>
     </TouchableOpacity>
@@ -75,24 +72,10 @@ return (
 );
 }
 
-
 const styles = StyleSheet.create({
-container: {
-    flex: 1,
-    padding: 20,
-    backgroundColor: "#F8F8F8",
-},
-title: {
-    fontSize: 22,
-    fontWeight: "700",
-    marginBottom: 20,
-    textAlign: "center",
-},
-label: {
-    marginTop: 10,
-    fontSize: 14,
-    fontWeight: "600",
-},
+container: { flex: 1, padding: 20, backgroundColor: "#F8F8F8" },
+title: { fontSize: 22, fontWeight: "700", marginBottom: 20, textAlign: "center" },
+label: { marginTop: 10, fontSize: 14, fontWeight: "600" },
 input: {
     backgroundColor: "#FFF",
     padding: 12,
@@ -101,16 +84,8 @@ input: {
     marginBottom: 10,
     elevation: 1,
 },
-section: {
-    marginTop: 20,
-    fontSize: 18,
-    fontWeight: "700",
-},
-subText: {
-    fontSize: 13,
-    opacity: 0.7,
-    marginBottom: 10,
-},
+section: { marginTop: 20, fontSize: 18, fontWeight: "700" },
+subText: { fontSize: 13, opacity: 0.7, marginBottom: 10 },
 dayRow: {
     backgroundColor: "#FFF",
     padding: 15,
@@ -140,10 +115,5 @@ button: {
     borderRadius: 14,
     marginVertical: 25,
 },
-buttonText: {
-    textAlign: "center",
-    fontSize: 18,
-    color: "#fff",
-    fontWeight: "700",
-},
+buttonText: { textAlign: "center", fontSize: 18, color: "#fff", fontWeight: "700" },
 });

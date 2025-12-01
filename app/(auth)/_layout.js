@@ -1,9 +1,13 @@
-import { Slot, Tabs } from "expo-router";
+import { Stack } from "expo-router";
 
-export default function Layout() {
+export default function AuthLayout() {
   return (
-    <Tabs>
-      <Tabs.Screen name="login" options={{ title: "Panel" }} />
-    </ Tabs>
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="login" />
+      <Stack.Screen name="Register" />
+      <Stack.Screen name="registrocons" />
+      <Stack.Screen name="registrover2" />
+      <Stack.Screen name="user" />
+    </Stack>
   );
 }

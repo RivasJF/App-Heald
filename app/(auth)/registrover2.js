@@ -1,7 +1,8 @@
+import { router } from "expo-router";
 import { useState } from "react";
 import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 
-export default function DoctorForm2({ navigation }) {
+export default function DoctorForm2() {
 
 const [daysSelected, setDaysSelected] = useState([]);
 const toggleDay = (day) => {
@@ -19,7 +20,6 @@ return (
     <ScrollView style={styles.container}>
     <Text style={styles.title}>Registro de Consultorio</Text>
 
-      {/* Datos principales */}
     <Text style={styles.label}>Nombre del doctor</Text>
     <TextInput style={styles.input} placeholder="Dr. Juan Pérez" />
 
@@ -29,7 +29,6 @@ return (
     <Text style={styles.label}>Teléfono del consultorio</Text>
     <TextInput style={styles.input} placeholder="55 1234 5678" keyboardType="phone-pad" />
 
-      {/* Dirección */}
     <Text style={styles.section}>Dirección del consultorio</Text>
     <TextInput style={styles.input} placeholder="Calle y Número" />
     <TextInput style={styles.input} placeholder="Entre calles" />
@@ -37,7 +36,6 @@ return (
     <TextInput style={styles.input} placeholder="Municipio / Ciudad" />
     <TextInput style={styles.input} placeholder="Código Postal" keyboardType="numeric" />
 
-      {/* Multi-select */}
     <Text style={styles.section}>Días de Atención</Text>
 
     <View style={styles.chipsContainer}>
@@ -60,7 +58,6 @@ return (
         ))}
     </View>
 
-      {/* Horarios */}
     <Text style={styles.section}>Horario para los días seleccionados</Text>
 
     <TextInput
@@ -77,10 +74,9 @@ return (
         onChangeText={setCloseHour}
     />
 
-      {/* Botón continuar */}
     <TouchableOpacity
         style={styles.button}
-        onPress={() => navigation.navigate("App")}
+        onPress={() => router.push("/login")}
     >
         <Text style={styles.buttonText}>Continuar</Text>
     </TouchableOpacity>

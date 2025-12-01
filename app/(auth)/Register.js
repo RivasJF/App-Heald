@@ -5,121 +5,121 @@ import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-nativ
 
 export default function Register() {
 
-const [date, setDate] = useState(null); 
-const [showPicker, setShowPicker] = useState(false);
+  const [date, setDate] = useState(null); 
+  const [showPicker, setShowPicker] = useState(false);
 
-const handleDateChange = (event, selectedDate) => {
+  const handleDateChange = (event, selectedDate) => {
     setShowPicker(false);
     if (selectedDate) setDate(selectedDate);
-};
+  };
 
   // Formato DD/MM/AAAA
-const formatDate = (d) => {
+  const formatDate = (d) => {
     if (!d) return "DD/MM/AAAA";
     const day = d.getDate().toString().padStart(2, "0");
     const month = (d.getMonth() + 1).toString().padStart(2, "0");
     const year = d.getFullYear();
     return `${day}/${month}/${year}`;
-};
+  };
 
-return (
+  return (
     <View style={styles.container}>
 
-    <Text style={styles.title}>Registro de Usuario</Text>
+      <Text style={styles.title}>Registro de Usuario</Text>
 
       {/* NOMBRE */}
-    <TextInput
+      <TextInput
         style={styles.input}
         placeholder="Nombre completo"
         placeholderTextColor="#999"
-    />
+      />
 
       {/* TELÉFONO */}
-    <TextInput
+      <TextInput
         style={styles.input}
         placeholder="Número de teléfono"
         placeholderTextColor="#999"
         keyboardType="phone-pad"
-    />
+      />
 
       {/* FECHA DE NACIMIENTO (DD/MM/AAAA) */}
-    <TouchableOpacity
+      <TouchableOpacity
         style={styles.input}
         onPress={() => setShowPicker(true)}
-    >
+      >
         <Text style={{ fontSize: 16, color: date ? '#000' : '#999' }}>
-        {formatDate(date)}
+          {formatDate(date)}
         </Text>
-    </TouchableOpacity>
+      </TouchableOpacity>
 
-    {showPicker && (
+      {showPicker && (
         <DateTimePicker
-        value={date || new Date(2000, 0, 1)}
-        mode="date"
+          value={date || new Date(2000, 0, 1)}
+          mode="date"
           display="spinner"   // ← más parecido a ruleta
-        onChange={handleDateChange}
-        maximumDate={new Date()}
+          onChange={handleDateChange}
+          maximumDate={new Date()}
         />
-    )}
+      )}
 
       {/* CORREO */}
-    <TextInput
+      <TextInput
         style={styles.input}
         placeholder="Correo electrónico"
         placeholderTextColor="#999"
         keyboardType="email-address"
-    />
+      />
 
       {/* CONTRASEÑA */}
-    <TextInput
+      <TextInput
         style={styles.input}
         placeholder="Contraseña"
         placeholderTextColor="#999"
         secureTextEntry
-    />
+      />
 
       {/* CONFIRMAR CONTRASEÑA */}
-    <TextInput
+      <TextInput
         style={styles.input}
         placeholder="Confirmar contraseña"
         placeholderTextColor="#999"
         secureTextEntry
-    />
+      />
 
       {/* CONTINUAR */}
-    <TouchableOpacity
+      <TouchableOpacity
         style={styles.buttonPrimary}
         onPress={() => router.push('/user')}
-    >
+      >
         <Text style={styles.buttonPrimaryText}>Continuar</Text>
-    </TouchableOpacity>
+      </TouchableOpacity>
 
       {/* VOLVER */}
-    <TouchableOpacity onPress={() => router.push('/App')}>
+      <TouchableOpacity onPress={() => router.push('/login')}>
         <Text style={styles.backToLogin}>Volver al inicio</Text>
-    </TouchableOpacity>
+      </TouchableOpacity>
 
     </View>
-);
+  );
 }
 
 const styles = StyleSheet.create({
-container: {
+  container: {
     flex: 1,
     backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 20,
-},
+  },
 
-title: {
+  title: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#333',
     marginBottom: 30,
-},
+  },
 
-input: {
+  input: {
     width: '100%',
     height: 50,
     borderWidth: 1,
@@ -130,9 +130,9 @@ input: {
     marginBottom: 15,
     fontSize: 16,
     color: '#000',
-},
+  },
 
-buttonPrimary: {
+  buttonPrimary: {
     width: '100%',
     height: 50,
     backgroundColor: '#4CAFED',
@@ -140,17 +140,17 @@ buttonPrimary: {
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 10,
-},
+  },
 
-buttonPrimaryText: {
+  buttonPrimaryText: {
     color: '#FFF',
     fontSize: 18,
     fontWeight: 'bold',
-},
+  },
 
-backToLogin: {
+  backToLogin: {
     color: '#4CAFED',
     fontSize: 16,
     marginTop: 20,
-},
+  },
 });

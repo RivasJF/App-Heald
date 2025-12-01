@@ -25,7 +25,6 @@ export default function App() {
         <Text style={styles.buttonPrimaryText}>Continuar</Text>
       </TouchableOpacity>
 
-      {/* NAVEGA A LA PANTALLA DE TIPOS DE USUARIO */}
       <TouchableOpacity onPress={() => router.push('/Register')}>
         <Text style={styles.registerText}>Registrarte</Text>
       </TouchableOpacity>
