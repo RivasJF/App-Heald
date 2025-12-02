@@ -31,9 +31,9 @@ export default function Index() {
     {
       id: 'd1',
       name: 'Dr. Juan Pérez',
-      specialty: 'Cardiología',
-      sex: 'Masculino',
-      photo: 'https://randomuser.me/api/portraits/men/32.jpg',
+      specialty: 'Sexologia',
+      sex: 'Master del trenzdo',
+      photo: Image.resolveAssetSource(require('../../../assets/foto.jpeg')).uri,
       rating: 4.9,
     },
     {
