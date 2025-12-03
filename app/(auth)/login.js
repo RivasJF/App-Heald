@@ -1,8 +1,35 @@
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useState } from 'react';
 import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert } from 'react-native';
+import { useAuth } from '../../src/context/AuthContext';
+
 
 export default function App() {
+  const { signIn, loading: authLoading } = useAuth();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert('Faltan datos', 'Por favor, introduce tu correo y contraseña.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await signIn(email, password);
+    } catch (error) {
+      const errorMessage = error.message || 'Error desconocido en el servidor.';
+      Alert.alert('Error de Login', errorMessage);
+      console.error('Detalles del error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <View style={styles.container}>
 
@@ -10,20 +37,26 @@ export default function App() {
 
       <TextInput
         style={styles.input}
-        placeholder="Ingresa tu correo"
-        placeholderTextColor="#999"
+        placeholder="Ingresa Correo"
+        keyboardType="email-address"
+        autoCapitalize="none"
+        value={email}
+        onChangeText={setEmail}
       />
 
       <TextInput
         style={styles.input}
-        placeholder="Ingresa tu contraseña"
-        placeholderTextColor="#999"
+        placeholder="Ingresa Contraseña"
         secureTextEntry
+        value={password}
+        onChangeText={setPassword}
       />
 
-      <TouchableOpacity style={styles.buttonPrimary}>
-        <Text style={styles.buttonPrimaryText}>Continuar</Text>
+      <TouchableOpacity style={styles.buttonPrimary} onPress={handleLogin} disabled={loading || authLoading}>
+        <Text style={styles.buttonPrimaryText}>{(loading || authLoading) ? "Conectando..." : "Continuar"}</Text>
       </TouchableOpacity>
+
+      {(loading || authLoading) && <ActivityIndicator style={{marginTop: 15}} size="large" color="#4CAFED" />}
 
       <TouchableOpacity onPress={() => router.push('/Register')}>
         <Text style={styles.registerText}>Registrarte</Text>

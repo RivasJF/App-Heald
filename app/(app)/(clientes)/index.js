@@ -14,11 +14,13 @@ import {
   Dimensions,
   Animated,
 } from 'react-native';
+import { useAuth } from '../../../src/context/AuthContext'; // Import useAuth
 
 // -----------------------
 // App completa (un solo archivo)
 // -----------------------
 export default function Index() {
+  const { signOut } = useAuth(); // Get signOut from useAuth
   const [screen, setScreen] = useState('bienvenida'); // bienvenida / doctor / fecha / resumen / ticket
 
   // Selecciones
@@ -119,6 +121,17 @@ export default function Index() {
               <Text style={styles.primaryButtonText}>Agendar cita</Text>
             </TouchableOpacity>
           </Animated.View>
+
+          {/* Logout Button */}
+          <TouchableOpacity
+            style={[styles.primaryButton, { backgroundColor: '#FF6347', marginTop: 10 }]} // Example styling for logout button
+            onPress={signOut}
+            activeOpacity={0.9}
+            onPressIn={pressIn}
+            onPressOut={pressOut}
+          >
+            <Text style={styles.primaryButtonText}>Cerrar sesión</Text>
+          </TouchableOpacity>
 
           <Text style={styles.smallNote}>Atención prioritaria · Pagos seguros · Recordatorios</Text>
         </View>

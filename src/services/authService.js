@@ -29,3 +29,16 @@ export const loginUser = async (email, password) => {
     throw errorData;
   }
 };
+
+/**
+ * Obtiene el perfil del usuario actual basado en el token JWT. (GET /auth/profile)
+ * @returns {Promise<object>} Los datos del perfil del usuario.
+ */
+export const getProfile = async () => {
+  try {
+    const response = await api.get(`${AUTH_BASE_PATH}/profile`);
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+};

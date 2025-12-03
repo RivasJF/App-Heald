@@ -13,11 +13,11 @@ export default function AppIndex() {
     );
   }
 
-  if (user?.role === "cliente") {
+  if (user?.role === "CLIENT") {
     return <Redirect href="/(app)/(clientes)" />;
   }
 
-  if (user?.role === "doctor") {
+  if (user?.role === "DOCTOR") {
     return <Redirect href="/(app)/(doctor)" />;
   }
 
