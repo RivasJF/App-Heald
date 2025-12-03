@@ -4,7 +4,7 @@ import * as SecureStore from 'expo-secure-store';
 const LOCAL_IP = '192.168.0.25';
 const PORT = '3000'; 
 
-const API_BASE_URL = `http://${LOCAL_IP}:${PORT}`;
+const API_BASE_URL = `https://server-heald.onrender.com`;
 
 const api = axios.create({
   baseURL: API_BASE_URL,
