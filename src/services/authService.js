@@ -23,7 +23,6 @@ export const loginUser = async (email, password) => {
     // Tu backend devuelve { access_token: '...', user: { ... } }
     return response.data; 
   } catch (error) {
-    // Captura errores como 'UnauthorizedException' (Password incorrect o usuario no encontrado)
     const errorData = error.response ? error.response.data : error;
     console.error('Login Error:', errorData);
     throw errorData;

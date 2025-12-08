@@ -19,7 +19,8 @@ export default function Register() {
     const day = d.getDate().toString().padStart(2, "0");
     const month = (d.getMonth() + 1).toString().padStart(2, "0");
     const year = d.getFullYear();
-    return `${day}/${month}/${year}`;
+    const date = `${year}-${month}-${day}`;
+    return date;//maybe use 'd'
   };
 
   return (
@@ -89,7 +90,7 @@ export default function Register() {
       {/* CONTINUAR */}
       <TouchableOpacity
         style={styles.buttonPrimary}
-        onPress={() => router.push('/user')}
+        onPress={() =>router.push('/user')}
       >
         <Text style={styles.buttonPrimaryText}>Continuar</Text>
       </TouchableOpacity>
