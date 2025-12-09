@@ -8,7 +8,9 @@ export default function PerfilLayout() {
         }}
       >
         {/* El screen index se renderiza primero */}
+        <Stack.Screen name="DoctorStatus" />
         <Stack.Screen name="horarios" />
+        <Stack.Screen name="consultorio" />
 
       </Stack>
   );

@@ -1,66 +1,100 @@
-import { Stack, Link } from 'expo-router';
+import { Stack, useFocusEffect } from 'expo-router';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ScrollView } from 'react-native';
 import { useAuth } from '../../../../../src/context/AuthContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
+import { useState, useCallback } from 'react';
+import { getDoctorByUserId } from '../../../../../src/services/doctorService';
 
 export default function DoctorProfileScreen() {
   const { user, signOut } = useAuth();
+  const [doctorProfile, setDoctorProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Prototipo de menú para el doctor
-  const menuItems = [
-    {
-      href: '/(app)/(doctor)/perfil/misDatos',
-      icon: 'user-md',
-      label: 'Mis Datos Profesionales',
-      description: 'Edita tu especialidad y biografía.'
-    },
-    {
-      href: '/(app)/(doctor)/horarios',
-      icon: 'calendar',
-      label: 'Gestionar Horarios',
-      description: 'Configura tus días y horas de atención.'
-    },
-    {
-      href: '/(app)/(doctor)/consultorio',
-      icon: 'hospital-o',
-      label: 'Mi Consultorio',
-      description: 'Actualiza la dirección de tu clínica.'
-    },
-  ];
+  const fetchDoctorProfile = useCallback(async () => {
+    if (user?.id) {
+      try {
+        setLoading(true);
+        const profileData = await getDoctorByUserId(user.id);
+        setDoctorProfile(profileData);
+        setError(null);
+      } catch (e) {
+        setError('No se pudo cargar el perfil del doctor.');
+        console.error('Error fetching doctor profile:', e);
+      } finally {
+        setLoading(false);
+      }
+    }
+  }, [user]);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchDoctorProfile();
+    }, [fetchDoctorProfile])
+  );
 
   return (
     <SafeAreaView style={styles.container}>
       <Stack.Screen options={{ headerShown: false }} />
       
       <View style={styles.header}>
-        <Text style={styles.title}>Mi Perfil</Text>
-        <Text style={styles.subtitle}>Bienvenido, Dr. {user?.name || 'Doctor'}</Text>
+        <View style={styles.headerRow}>
+          <Text style={styles.title}>Mi Perfil</Text>
+          <TouchableOpacity onPress={fetchDoctorProfile} disabled={loading}>
+            <FontAwesome name="refresh" size={24} color={loading ? '#B0C4DE' : '#072B66'} />
+          </TouchableOpacity>
+        </View>
+        <Text style={styles.subtitle}>Bienvenido, Dr. {user?.name || '...'}</Text>
+        {loading ? (
+          <ActivityIndicator color="#6B82B1" style={{ alignSelf: 'flex-start', marginTop: 5 }} />
+        ) : error ? (
+          <Text style={styles.errorText}>{error}</Text>
+        ) : (
+          <View style={styles.infoCard}>
+            <InfoRow icon="user-md" label="Nombre" value={`Dr. ${user?.name}`} />
+            <InfoRow icon="envelope-o" label="Email" value={user?.email} />
+            <InfoRow icon="stethoscope" label="Especialidad" value={doctorProfile?.speciality} />
+            <InfoRow icon="info-circle" label="Biografía" value={doctorProfile?.biography} />
+            <StatusRow active={doctorProfile?.serviceStatus?.active} />
+          </View>
+        )}
       </View>
 
-      <ScrollView>
-        <View style={styles.menuContainer}>
-          {menuItems.map((item) => (
-            <Link key={item.href} href={item.href} asChild>
-              <TouchableOpacity style={styles.menuButton}>
-                <FontAwesome name={item.icon} size={22} color="#3F51B5" style={styles.icon} />
-                <View style={styles.menuTextContainer}>
-                  <Text style={styles.menuButtonText}>{item.label}</Text>
-                  <Text style={styles.menuButtonDescription}>{item.description}</Text>
-                </View>
-                <FontAwesome name="angle-right" size={24} color="#B0C4DE" />
-              </TouchableOpacity>
-            </Link>
-          ))}
-        </View>
-
+      <View style={styles.footer}>
         <TouchableOpacity style={styles.logoutButton} onPress={signOut}>
-          <Text style={styles.logoutButtonText}>Cerrar sesión</Text>
+          <FontAwesome name="sign-out" size={20} color="#FFFFFF" />
+          <Text style={styles.logoutButtonText}>Cerrar Sesión</Text>
         </TouchableOpacity>
-      </ScrollView>
+      </View>
     </SafeAreaView>
   );
 }
+
+const InfoRow = ({ icon, label, value }) => (
+  <View style={styles.infoRow}>
+    <FontAwesome name={icon} size={18} color="#4B6AA3" style={styles.infoIcon} />
+    <View>
+      <Text style={styles.infoLabel}>{label}</Text>
+      <Text style={styles.infoValue}>{value || 'No disponible'}</Text>
+    </View>
+  </View>
+);
+
+const StatusRow = ({ active }) => {
+  const statusText = active ? 'Activo' : 'Inactivo';
+  const statusColor = active ? '#28A745' : '#DC3545'; // Verde para activo, Rojo para inactivo
+
+  return (
+    <View style={styles.infoRow}>
+      <FontAwesome name="power-off" size={18} color="#4B6AA3" style={styles.infoIcon} />
+      <View>
+        <Text style={styles.infoLabel}>Estado del Servicio</Text>
+        <Text style={[styles.statusValue, { color: statusColor }]}>{statusText}</Text>
+      </View>
+    </View>
+  );
+};
 
 const styles = StyleSheet.create({
   container: {
@@ -68,9 +102,27 @@ const styles = StyleSheet.create({
     backgroundColor: '#F5F8FF',
   },
   header: {
+    padding: 24,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  infoCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 20,
+    marginTop: 20,
+    shadowColor: '#072B66',
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  footer: {
     paddingHorizontal: 24,
-    paddingTop: 20,
-    paddingBottom: 10,
+    paddingBottom: 24,
+    marginTop: 'auto', // Empuja el botón de logout hacia abajo
   },
   title: {
     fontSize: 28,
@@ -82,49 +134,13 @@ const styles = StyleSheet.create({
     color: '#6B82B1',
     marginTop: 4,
   },
-  menuContainer: {
-    margin: 24,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    shadowColor: '#072B66',
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 5,
-    overflow: 'hidden', // Para que el borde redondeado afecte a los hijos
-  },
-  menuButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 18,
-    paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F4F8',
-  },
-  icon: {
-    width: 30,
-    textAlign: 'center',
-  },
-  menuTextContainer: {
-    flex: 1,
-    marginLeft: 15,
-  },
-  menuButtonText: {
-    fontSize: 16,
-    color: '#072B66',
-    fontWeight: '600',
-  },
-  menuButtonDescription: {
-    fontSize: 12,
-    color: '#7A93C7',
-    marginTop: 2,
-  },
   logoutButton: {
-    marginHorizontal: 24,
-    backgroundColor: '#FF6347',
+    backgroundColor: '#D9534F',
     padding: 15,
     borderRadius: 12,
     alignItems: 'center',
-    marginTop: 20,
+    justifyContent: 'center',
+    flexDirection: 'row',
     shadowColor: '#D9534F',
     shadowOpacity: 0.2,
     shadowRadius: 10,
@@ -134,5 +150,22 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '700',
     fontSize: 16,
+    marginLeft: 10,
+  },
+  errorText: {
+    color: '#D9534F',
+    marginTop: 5,
+    fontSize: 14,
+    fontStyle: 'italic',
+  },
+  // Estilos que estaban en infoStyles ahora están aquí
+  infoRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 18 },
+  infoIcon: { width: 25, marginRight: 15 },
+  infoLabel: { fontSize: 13, color: '#6B82B1' },
+  infoValue: { fontSize: 16, color: '#072B66', fontWeight: '600', marginTop: 2 },
+  statusValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    marginTop: 2,
   },
 });
