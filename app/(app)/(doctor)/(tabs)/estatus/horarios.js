@@ -1,11 +1,12 @@
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, FlatList } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView, Alert, Switch, Platform } from "react-native";
 import { Stack, useRouter } from "expo-router";
 import { useState, useEffect } from "react";
 import { useAuth } from "../../../../../src/context/AuthContext";
-import { getScheduleByUserId } from "../../../../../src/services/scheduleService";
+import { getScheduleByUserId, updateSchedule } from "../../../../../src/services/scheduleService";
 import { getDoctorByUserId } from "../../../../../src/services/doctorService";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { FontAwesome } from "@expo/vector-icons";
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 // Mapeo: Abreviatura (para el botón) -> Nombre completo (para el estado de datos)
 const DIAS_MAP = {
@@ -29,17 +30,51 @@ const API_DAY_TO_FULL_NAME = {
   SUN: "Domingo",
 };
 
+const FULL_NAME_TO_API_DAY = {
+  Lunes: "MON",
+  Martes: "TUE",
+  Miércoles: "WED",
+  Jueves: "THU",
+  Viernes: "FRI",
+  Sábado: "SAT",
+  Domingo: "SUN",
+};
+
+const ALL_DAYS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
+
+const initialScheduleState = ALL_DAYS.reduce((acc, day) => {
+  acc[day] = {
+    active: false,
+    startTime: '09:00',
+    endTime: '17:00',
+    breakStartTime: '13:00',
+    breakEndTime: '14:00',
+  };
+  return acc;
+}, {});
+
 // Colores:
 const ACCENT_COLOR = "#3F51B5"; // Azul índigo
+const ACTIVE_BG_COLOR = "#E8EAF6";
+const INACTIVE_BG_COLOR = "#F5F5F5";
 const TEXT_DARK = "#212121";
+const TEXT_MUTED = "#757575";
 
 export default function Horarios() {
   const router = useRouter();
   const { user } = useAuth();
 
-  const [schedule, setSchedule] = useState(null);
+  const [doctorProfile, setDoctorProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState(null);
+
+  // Estado para el selector de hora
+  const [pickerVisible, setPickerVisible] = useState(false);
+  const [timeBeingEdited, setTimeBeingEdited] = useState({ day: null, type: null });
+  const [pickerDate, setPickerDate] = useState(new Date());
+
+  const [scheduleConfig, setScheduleConfig] = useState(initialScheduleState);
 
   useEffect(() => {
     if (user?.id) {
@@ -50,12 +85,23 @@ export default function Horarios() {
           if (!doctorProfile?.id) {
             throw new Error("Perfil de doctor no encontrado.");
           }
+          setDoctorProfile(doctorProfile);
           // 2. Usar el ID de DOCTOR para obtener el horario
           return getScheduleByUserId(doctorProfile.id);
         })
         .then(schedule => {
           if (schedule && schedule.days) {
-            setSchedule(schedule);
+            const newConfig = { ...initialScheduleState };
+            schedule.days.forEach(day => {
+              const dayName = API_DAY_TO_FULL_NAME[day.day];
+              if (dayName) {
+                newConfig[dayName].active = true;
+                newConfig[dayName].startTime = day.startTime;
+                newConfig[dayName].endTime = day.endTime;
+              }
+            });
+            // Aquí se podrían procesar los breaks de manera similar
+            setScheduleConfig(newConfig);
           }
           setError(null);
         })
@@ -67,23 +113,80 @@ export default function Horarios() {
     }
   }, [user]);
 
-  const renderScheduleItem = ({ item: day }) => {
-    const breakTime = schedule.breaks.find(b => b.day === day.day);
-    return (
-      <View style={styles.dayCard}>
-        <Text style={styles.dayTitle}>{API_DAY_TO_FULL_NAME[day.day]}</Text>
-        <View style={styles.detailRow}>
-          <FontAwesome name="clock-o" size={16} color={ACCENT_COLOR} />
-          <Text style={styles.detailText}>{day.startTime} - {day.endTime}</Text>
-        </View>
-        {breakTime && (
-          <View style={styles.detailRow}>
-            <FontAwesome name="coffee" size={16} color="#757575" />
-            <Text style={styles.detailText}>Descanso: {breakTime.startTime} - {breakTime.endTime}</Text>
-          </View>
-        )}
-      </View>
-    );
+  const handleDayToggle = (day, value) => {
+    setScheduleConfig(prev => ({
+      ...prev,
+      [day]: { ...prev[day], active: value }
+    }));
+  };
+
+  const showTimePicker = (day, type, currentTime) => {
+    const [hours, minutes] = currentTime.split(':');
+    const date = new Date();
+    date.setHours(parseInt(hours, 10));
+    date.setMinutes(parseInt(minutes, 10));
+    
+    setPickerDate(date);
+    setTimeBeingEdited({ day, type });
+    setPickerVisible(true);
+  };
+
+  const onTimeChange = (event, selectedDate) => {
+    // Ocultar el picker en Android. En iOS se oculta solo.
+    if (Platform.OS === 'android') {
+      setPickerVisible(false);
+    }
+
+    if (event.type === 'set' && selectedDate) {
+      // Formatear a HH:mm
+      const newTime = selectedDate.toTimeString().substring(0, 5);
+      const { day, type } = timeBeingEdited;
+
+      setScheduleConfig(prev => ({
+        ...prev,
+        [day]: { ...prev[day], [type]: newTime }
+      }));
+    }
+  };
+
+  const handleGuardarCambios = async () => {
+    if (!doctorProfile?.id) {
+      Alert.alert("Error", "No se pudo identificar al doctor.");
+      return;
+    }
+    setIsSaving(true);
+
+    const updateDto = {
+      days: [],
+      breaks: [],
+    };
+
+    for (const dayName in scheduleConfig) {
+      const config = scheduleConfig[dayName];
+      if (config.active) {
+        const apiDay = FULL_NAME_TO_API_DAY[dayName];
+        updateDto.days.push({
+          day: apiDay,
+          startTime: config.startTime,
+          endTime: config.endTime,
+        });
+        updateDto.breaks.push({
+          day: apiDay,
+          startTime: config.breakStartTime,
+          endTime: config.breakEndTime,
+        });
+      }
+    }
+
+    try {
+      await updateSchedule(doctorProfile.id, updateDto);
+      Alert.alert("Éxito", "Tu horario ha sido actualizado correctamente.");
+    } catch (err) {
+      console.error("Error al guardar el horario:", err);
+      Alert.alert("Error", "No se pudo guardar el horario. Inténtalo de nuevo.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   if (loading) {
@@ -96,7 +199,7 @@ export default function Horarios() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
       <Stack.Screen options={{ headerShown: false }} />
 
       {/* Cabecera */}
@@ -104,37 +207,79 @@ export default function Horarios() {
         <Text style={styles.backButtonText}>← Panel de Control</Text>
       </TouchableOpacity>
       <Text style={styles.title}>Mi Horario de Atención</Text>
+      <View style={styles.separator} />
 
       {error && <Text style={styles.errorText}>{error}</Text>}
 
-      {schedule ? (
-        <>
-          <View style={styles.summaryCard}>
-            <FontAwesome name="hourglass-half" size={20} color={ACCENT_COLOR} />
-            <Text style={styles.summaryText}>
-              Tiempo de consulta: <Text style={{ fontWeight: 'bold' }}>{schedule.consultationTime} minutos</Text>
-            </Text>
+      {ALL_DAYS.map(day => {
+        const config = scheduleConfig[day];
+        return (
+          <View key={day} style={styles.dayCard}>
+            <View style={styles.dayHeader}>
+              <Text style={styles.dayTitle}>{day}</Text>
+              <Switch
+                trackColor={{ false: INACTIVE_BG_COLOR, true: ACCENT_COLOR }}
+                thumbColor={"#fff"}
+                value={config.active}
+                onValueChange={(value) => handleDayToggle(day, value)}
+              />
+            </View>
+            {config.active && (
+              <View style={styles.detailsContainer}>
+                {/* Horario de Trabajo */}
+                <View style={styles.timeRow}>
+                  <FontAwesome name="clock-o" size={16} color={TEXT_DARK} style={styles.timeIcon} />
+                  <Text style={styles.timeLabel}>Trabajo:</Text>
+                  <TouchableOpacity onPress={() => showTimePicker(day, 'startTime', config.startTime)}>
+                    <Text style={styles.timeValue}>{config.startTime}</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.timeSeparator}>-</Text>
+                  <TouchableOpacity onPress={() => showTimePicker(day, 'endTime', config.endTime)}>
+                    <Text style={styles.timeValue}>{config.endTime}</Text>
+                  </TouchableOpacity>
+                </View>
+                {/* Horario de Descanso */}
+                <View style={styles.timeRow}>
+                  <FontAwesome name="coffee" size={16} color={TEXT_MUTED} style={styles.timeIcon} />
+                  <Text style={styles.timeLabel}>Descanso:</Text>
+                  <TouchableOpacity onPress={() => showTimePicker(day, 'breakStartTime', config.breakStartTime)}>
+                    <Text style={styles.timeValue}>{config.breakStartTime}</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.timeSeparator}>-</Text>
+                  <TouchableOpacity onPress={() => showTimePicker(day, 'breakEndTime', config.breakEndTime)}>
+                    <Text style={styles.timeValue}>{config.breakEndTime}</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
           </View>
+        );
+      })}
 
-          <FlatList
-            data={schedule.days}
-            renderItem={renderScheduleItem}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={{ paddingVertical: 10 }}
-            ListEmptyComponent={<Text style={styles.emptyText}>No hay días de trabajo configurados.</Text>}
-          />
-        </>
-      ) : (
-        !loading && <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>No se encontró un horario configurado.</Text>
-        </View>
+      {pickerVisible && (
+        <DateTimePicker
+          value={pickerDate}
+          mode="time"
+          is24Hour={true}
+          display="default"
+          onChange={onTimeChange}
+        />
       )}
-    </SafeAreaView>
+
+      <TouchableOpacity style={styles.confirmButton} onPress={handleGuardarCambios} disabled={isSaving}>
+        {isSaving ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text style={styles.confirmButtonText}>Guardar Horarios</Text>
+        )}
+      </TouchableOpacity>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F5F8FF", padding: 24 },
+  container: { flex: 1, backgroundColor: "#fff" },
+  contentContainer: { paddingHorizontal: 20, paddingVertical: 40, paddingBottom: 100 },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: "#F5F8FF" },
   emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 
@@ -151,48 +296,64 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     textAlign: "center",
   },
-  summaryCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-  },
-  summaryText: {
-    marginLeft: 15,
-    fontSize: 16,
-    color: TEXT_DARK,
-  },
+  separator: { height: 1, backgroundColor: '#EEEEEE', marginVertical: 25 },
   dayCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
-    padding: 20,
+    padding: 15,
     marginBottom: 15,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  dayHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   dayTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: ACCENT_COLOR,
-    marginBottom: 10,
+    fontWeight: '700',
+    color: TEXT_DARK,
   },
-  detailRow: {
+  detailsContainer: {
+    borderTopWidth: 1,
+    borderTopColor: '#EEEEEE',
+    marginTop: 15,
+    paddingTop: 15,
+  },
+  timeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 5,
+    marginBottom: 10,
   },
-  detailText: {
+  timeIcon: {
+    width: 20,
+  },
+  timeLabel: {
     marginLeft: 10,
     fontSize: 15,
     color: TEXT_DARK,
+    width: 70, // Ancho fijo para alinear los horarios
+  },
+  timeValue: {
+    color: ACCENT_COLOR,
+    fontWeight: '600',
+    fontSize: 15,
+    textDecorationLine: 'underline',
+    paddingHorizontal: 5,
+  },
+  timeSeparator: {
+    fontSize: 15,
+    color: TEXT_DARK,
+    marginHorizontal: 5,
+  },
+  confirmButton: {
+    backgroundColor: ACCENT_COLOR,
+    padding: 18,
+    borderRadius: 12,
+    alignItems: "center",
+    marginTop: 40,
+    elevation: 3,
   },
   errorText: {
     textAlign: 'center',
@@ -200,10 +361,5 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     fontSize: 15,
   },
-  emptyText: {
-    textAlign: 'center',
-    color: '#757575',
-    marginTop: 50,
-    fontSize: 16,
-  },
+  confirmButtonText: { color: "white", fontSize: 18, fontWeight: "bold" },
 });
