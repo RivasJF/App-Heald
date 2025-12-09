@@ -22,6 +22,14 @@ export default function CrearCita() {
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedTime, setSelectedTime] = useState(null);
 
+  // Helper para iniciales
+  const getInitials = (name) => {
+    if (!name) return '';
+    const parts = name.split(' ');
+    if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  };
+
   // Mock doctores
   const doctors = [
     {
@@ -116,6 +124,20 @@ export default function CrearCita() {
             </TouchableOpacity>
           </Animated.View>
 
+<<<<<<< HEAD:app/(app)/(clientes)/crear-cita.js
+=======
+          {/* Logout Button */}
+          <TouchableOpacity
+            style={[styles.primaryButton, { backgroundColor: '#FF6347', marginTop: 10 }]}
+            onPress={signOut}
+            activeOpacity={0.9}
+            onPressIn={pressIn}
+            onPressOut={pressOut}
+          >
+            <Text style={styles.primaryButtonText}>Cerrar sesión</Text>
+          </TouchableOpacity>
+
+>>>>>>> 0901fcd5108a07b978d1b8ee522800c2ba5a163f:app/(app)/(clientes)/index.js
           <Text style={styles.smallNote}>Atención prioritaria · Pagos seguros · Recordatorios</Text>
         </View>
 
@@ -133,7 +155,14 @@ export default function CrearCita() {
 
         <View style={styles.headerRow}>
           <Text style={styles.sectionTitle}>Doctores disponibles</Text>
-          <TouchableOpacity onPress={() => { setSelectedDoctor(null); setSelectedDate(null); setSelectedTime(null); setScreen('bienvenida'); }}>
+          <TouchableOpacity
+            onPress={() => {
+              setSelectedDoctor(null);
+              setSelectedDate(null);
+              setSelectedTime(null);
+              setScreen('bienvenida');
+            }}
+          >
             <Text style={styles.linkText}>Cancelar</Text>
           </TouchableOpacity>
         </View>
@@ -143,10 +172,19 @@ export default function CrearCita() {
             <TouchableOpacity
               key={d.id}
               style={[styles.card, selectedDoctor?.id === d.id && styles.cardSelected]}
-              onPress={() => { setSelectedDoctor(d); setScreen('fecha'); }}
+              onPress={() => {
+                setSelectedDoctor(d);
+                setScreen('fecha');
+              }}
               activeOpacity={0.92}
             >
-              <Image source={{ uri: d.photo }} style={styles.avatar} />
+              {/* Avatar replaced with initials badge to remove images in selection */}
+              <View style={styles.initialsWrap}>
+                <View style={styles.initialsCircle}>
+                  <Text style={styles.initialsText}>{getInitials(d.name)}</Text>
+                </View>
+              </View>
+
               <View style={{ flex: 1 }}>
                 <Text style={styles.cardTitle}>{d.name}</Text>
                 <Text style={styles.cardSubtitle}>{d.specialty} · {d.sex}</Text>
@@ -206,7 +244,7 @@ export default function CrearCita() {
               data={dates}
               keyExtractor={(i) => i.iso}
               showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ paddingHorizontal: 0 }}
+              contentContainerStyle={{ paddingHorizontal: 18 }}
               renderItem={({ item }) => {
                 const chosen = selectedDate === item.iso;
                 return (
@@ -378,7 +416,7 @@ export default function CrearCita() {
 }
 
 // -----------------------
-// ESTILOS (ajustados para la nueva vista 'fecha')
+// ESTILOS (ajustados para la nueva vista 'fecha' y selección sin imágenes)
 // -----------------------
 const { width } = Dimensions.get('window');
 const styles = StyleSheet.create({
@@ -422,7 +460,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderRadius: 12,
     width: 220,
-    alignSelf: 'center', // Alineación central añadida
+    alignSelf: 'center',
     alignItems: 'center',
     shadowColor: '#0B4EF2',
     shadowOpacity: 0.18,
@@ -475,7 +513,7 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
     gap: 12,
   },
-  scrollContainerDate: { // Contenedor para la vista 'fecha'
+  scrollContainerDate: {
     paddingBottom: 40,
   },
 
@@ -491,20 +529,42 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.06,
     shadowRadius: 10,
     elevation: 4,
+    gap: 12,
   },
   cardSelected: {
     borderWidth: 1.5,
     borderColor: '#0B4EF2',
     transform: [{ scale: 1.01 }],
   },
-  avatar: {
+
+  // New initials badge (replaces avatar in selection list)
+  initialsWrap: {
     width: 72,
     height: 72,
-    borderRadius: 36,
-    marginRight: 12,
-    borderWidth: 2,
-    borderColor: '#EAF1FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 6,
   },
+  initialsCircle: {
+    width: 62,
+    height: 62,
+    borderRadius: 31,
+    backgroundColor: '#EAF1FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#D7E8FF',
+    shadowColor: '#072B66',
+    shadowOpacity: 0.03,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  initialsText: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#0B4EF2',
+  },
+
   cardTitle: {
     fontSize: 16,
     fontWeight: '800',
@@ -558,7 +618,7 @@ const styles = StyleSheet.create({
   },
   containerSection: { paddingHorizontal: 18 },
   label: { color: '#36548B', fontWeight: '700', marginBottom: 12, fontSize: 15 },
-  
+
   // Día Card (Horizontal List)
   dayCard: {
     paddingVertical: 10,
@@ -577,8 +637,8 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: '#EAF1FF',
   },
-  dayCardActive: { 
-    backgroundColor: '#0B4EF2', 
+  dayCardActive: {
+    backgroundColor: '#0B4EF2',
     borderColor: '#0B4EF2',
     transform: [{ scale: 1.05 }],
   },
@@ -588,35 +648,37 @@ const styles = StyleSheet.create({
   dateNumberActive: { color: '#fff' },
 
   // Time Grid (Chips)
-  timeGrid: { 
-    flexDirection: 'row', 
-    flexWrap: 'wrap', 
-    gap: 12, // Espacio entre chips
+  timeGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
   },
   timeChip: {
     paddingVertical: 10,
     paddingHorizontal: 18,
     backgroundColor: '#FFFFFF',
-    borderRadius: 20, // Bordes más redondeados
+    borderRadius: 20,
     borderWidth: 1.5,
     borderColor: '#EAF1FF',
     shadowColor: '#072B66',
     shadowOpacity: 0.03,
     shadowRadius: 5,
     elevation: 1,
+    marginRight: 10,
+    marginBottom: 10,
   },
-  timeChipActive: { 
+  timeChipActive: {
     backgroundColor: '#0B4EF2',
     borderColor: '#0B4EF2',
     transform: [{ scale: 1.05 }],
   },
-  timeChipText: { 
-    color: '#223762', 
-    fontWeight: '700', 
-    fontSize: 14 
+  timeChipText: {
+    color: '#223762',
+    fontWeight: '700',
+    fontSize: 14
   },
-  timeChipTextActive: { 
-    color: '#fff' 
+  timeChipTextActive: {
+    color: '#fff'
   },
 
   // Resumen
