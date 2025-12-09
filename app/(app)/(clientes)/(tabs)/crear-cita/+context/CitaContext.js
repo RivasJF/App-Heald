@@ -5,13 +5,13 @@ export const CitaContext = createContext();
 export function CitaProvider({ children }) {
   const [selectedDoctor, setSelectedDoctor] = useState(null);
   const [selectedDate, setSelectedDate] = useState(null);
-  const [selectedTime, setSelectedTime] = useState(null);
+  const [selectedSlot, setSelectedSlot] = useState(null); // De 'selectedTime' a 'selectedSlot'
   const [selectedLocation, setSelectedLocation] = useState(null); // Nuevo estado para la ubicación
 
   const resetCita = useCallback(() => {
     setSelectedDoctor(null);
     setSelectedDate(null);
-    setSelectedTime(null);
+    setSelectedSlot(null);
     setSelectedLocation(null); // Limpiar también la ubicación
   }, []);
 
@@ -20,8 +20,8 @@ export function CitaProvider({ children }) {
     setSelectedDoctor,
     selectedDate,
     setSelectedDate,
-    selectedTime,
-    setSelectedTime,
+    selectedSlot,
+    setSelectedSlot,
     selectedLocation,
     setSelectedLocation,
     resetCita,

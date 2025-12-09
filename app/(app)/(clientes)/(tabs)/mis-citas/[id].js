@@ -1,12 +1,17 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
+import { useState } from 'react';
+import { cancelAppointment } from '../../../../../src/services/appointmentService';
 
 export default function CitaDetalle() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { cita: citaString } = params;
+
+  const [isCanceling, setIsCanceling] = useState(false);
+  const [cancelError, setCancelError] = useState(null);
 
   // Parseamos el string JSON para obtener el objeto de la cita
   const cita = citaString ? JSON.parse(citaString) : null;
@@ -27,8 +32,39 @@ export default function CitaDetalle() {
 
   const doctorName = cita.doctor.user?.name || 'Doctor';
 
+  const handleCancelAppointment = async () => {
+    Alert.alert(
+      "Confirmar Cancelación",
+      "¿Estás seguro de que quieres cancelar esta cita?",
+      [
+        { text: "No", style: "cancel" },
+        {
+          text: "Sí, cancelar",
+          style: "destructive",
+          onPress: async () => {
+            setIsCanceling(true);
+            setCancelError(null);
+            try {
+              await cancelAppointment(cita.id);
+              Alert.alert("Cita Cancelada", "Tu cita ha sido cancelada con éxito.");
+              router.back(); // Volver a la lista de citas
+            } catch (error) {
+              const errorMessage = error?.message || "No se pudo cancelar la cita.";
+              setCancelError(errorMessage);
+              Alert.alert("Error", errorMessage);
+            } finally {
+              setIsCanceling(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   return (
     <SafeAreaView style={styles.container}>
+      {/* El Stack.Screen se ha movido al _layout de mis-citas para un mejor control */}
+      {/* Si necesitas un título aquí, asegúrate de que el layout lo permita */}
       <Stack.Screen options={{ title: 'Detalle de la Cita', headerShown: false }} />
 
       <View style={styles.headerRow}>
@@ -49,6 +85,20 @@ export default function CitaDetalle() {
             <DetailRow icon="map-marker" label="Ubicación" value={cita.clinicLocation.address} />
             <DetailRow icon="info-circle" label="ID de Cita" value={cita.id} />
           </View>
+        </View>
+
+        {cancelError && <Text style={styles.errorText}>{cancelError}</Text>}
+
+        <View style={{ marginTop: 30 }}>
+          <TouchableOpacity
+            style={[styles.cancelButton, isCanceling && styles.disabledButton]}
+            onPress={handleCancelAppointment}
+            disabled={isCanceling}
+          >
+            {isCanceling
+              ? <ActivityIndicator color="#FFFFFF" />
+              : <Text style={styles.cancelButtonText}>Cancelar Cita</Text>}
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -137,5 +187,23 @@ const styles = StyleSheet.create({
     marginTop: 30,
     fontSize: 16,
     padding: 24,
+  },
+  cancelButton: {
+    backgroundColor: '#D9534F', // Un color rojo para indicar una acción destructiva
+    padding: 15,
+    borderRadius: 12,
+    alignItems: 'center',
+    shadowColor: '#D9534F',
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  cancelButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 16,
+  },
+  disabledButton: {
+    opacity: 0.7,
   },
 });

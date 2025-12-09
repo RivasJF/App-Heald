@@ -1,7 +1,7 @@
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useRouter, useFocusEffect } from 'expo-router';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useEffect, useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useAuth } from '../../../../../src/context/AuthContext';
 import { findByPatient } from '../../../../../src/services/appointmentService';
 import { FontAwesome } from '@expo/vector-icons';
@@ -13,8 +13,7 @@ export default function MisCitas() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    const fetchCitas = async () => {
+  const fetchCitas = useCallback(async () => {
       if (!user?.id) {
         setLoading(false);
         return;
@@ -31,10 +30,14 @@ export default function MisCitas() {
       } finally {
         setLoading(false);
       }
-    };
-
-    fetchCitas();
   }, [user]);
+
+  useFocusEffect(
+    // La función se ejecuta cada vez que la pantalla entra en foco
+    useCallback(() => {
+      fetchCitas();
+    }, [fetchCitas])
+  );
 
   const renderItem = ({ item }) => {
     const fecha = new Date(item.startTime).toLocaleDateString('es-ES', {
@@ -72,7 +75,12 @@ export default function MisCitas() {
   return (
     <SafeAreaView style={styles.container}>
       <Stack.Screen options={{ title: 'Mis Citas' }} />
-      <Text style={styles.title}>Mis Citas Creadas</Text>
+      <View style={styles.headerContainer}>
+        <Text style={styles.title}>Mis Citas Creadas</Text>
+        <TouchableOpacity onPress={fetchCitas} disabled={loading}>
+          <FontAwesome name="refresh" size={24} color={loading ? '#B0C4DE' : '#0B4EF2'} />
+        </TouchableOpacity>
+      </View>
 
       {loading ? (
         <ActivityIndicator size="large" color="#0B4EF2" style={{ marginTop: 30 }} />
@@ -83,6 +91,8 @@ export default function MisCitas() {
           data={citas}
           renderItem={renderItem}
           keyExtractor={(item) => item.id}
+          onRefresh={fetchCitas} // Permite "pull-to-refresh"
+          refreshing={loading}   // Muestra el indicador de carga en pull-to-refresh
           contentContainerStyle={{ paddingTop: 20 }}
           ListEmptyComponent={<Text style={styles.emptyText}>Aún no tienes citas agendadas.</Text>}
         />
@@ -104,6 +114,12 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: '800',
     color: '#072B66',
+  },
+  headerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
   },
   card: {
     backgroundColor: '#FFFFFF',

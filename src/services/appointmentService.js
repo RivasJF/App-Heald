@@ -17,3 +17,54 @@ export const findByPatient = async (patientId) => {
     throw error.response ? error.response.data : error;
   }
 };
+
+/**
+ * Obtiene los horarios disponibles para un doctor en una fecha específica. (GET /appointment/availability/:doctorId/:date)
+ * @param {string} doctorId - El ID del doctor.
+ * @param {string} date - La fecha en formato 'YYYY-MM-DD'.
+ * @returns {Promise<Array<string>>} Una lista de los horarios disponibles (ej: ['09:00', '10:30']).
+ */
+export const getDoctorAvailability = async (doctorId, date) => {
+  try {
+    const response = await api.get(`${APPOINTMENT_BASE_PATH}/availability/${doctorId}/${date}`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error al obtener la disponibilidad para el doctor ${doctorId} en la fecha ${date}:`, error.response ? error.response.data : error);
+    throw error.response ? error.response.data : error;
+  }
+};
+
+/**
+ * Cancela una cita. (DELETE /appointment/:appointmentId)
+ * @param {string} appointmentId - El ID de la cita a cancelar.
+ * @returns {Promise<object>} La cita cancelada.
+ */
+export const cancelAppointment = async (appointmentId) => {
+  try {
+    const response = await api.delete(`${APPOINTMENT_BASE_PATH}/${appointmentId}`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error al cancelar la cita ${appointmentId}:`, error.response ? error.response.data : error);
+    throw error.response ? error.response.data : error;
+  }
+};
+
+/**
+ * Crea una nueva cita. (POST /appointment)
+ * @param {object} dto - Los datos de la cita a crear.
+ * @param {string} dto.doctorId - ID del doctor.
+ * @param {string} dto.patientId - ID del paciente.
+ * @param {string} dto.clinicLocationId - ID de la ubicación de la clínica.
+ * @param {string} dto.startTime - Fecha y hora de inicio en formato ISO. (ej:'2025-12-10T10:00:00')
+ * @param {string} dto.endTime - Fecha y hora de fin en formato ISO. (ej:'2025-12-10T10:30:00')
+ * @returns {Promise<object>} La cita creada.
+ */
+export const createAppointment = async (dto) => {
+  try {
+    const response = await api.post(APPOINTMENT_BASE_PATH, dto);
+    return response.data;
+  } catch (error) {
+    console.error('Error al crear la cita:', error.response ? error.response.data : error);
+    throw error.response ? error.response.data : error;
+  }
+};

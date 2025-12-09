@@ -1,3 +1,6 @@
- Añadir cancelar cita a mis citas (cliente)
-    Quitar citas fuera de tiempo actual (cliente)
+
+ Quitar citas fuera de tiempo actual (cliente)
+
+ Poder poner una distancia en clinicas segun ubicacion(cliente)
+
  Añadir opcion de actuializar datos de perfil (cliente)

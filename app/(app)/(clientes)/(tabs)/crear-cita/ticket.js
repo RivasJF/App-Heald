@@ -1,37 +1,46 @@
 import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useContext, useMemo } from 'react';
+import { useContext, useEffect } from 'react';
 import { useAuth } from '../../../../../src/context/AuthContext';
 import { CitaContext } from './+context/CitaContext';
-
-const getInitials = (name) => {
-  if (!name) return '';
-  const parts = name.split(' ');
-  if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
-  return (parts[0][0] + parts[1][0]).toUpperCase();
-};
 
 export default function TicketScreen() {
   const router = useRouter();
   const { user } = useAuth();
-  const { selectedDoctor, selectedDate, selectedTime, resetCita } = useContext(CitaContext);
+  const { resetCita } = useContext(CitaContext); // Solo necesitamos resetCita del contexto
+  const params = useLocalSearchParams();
+  const { citaCreada: citaString, doctor: doctorString } = params;
 
-  const ticketCode = useMemo(() => {
-    return `APPT-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-  }, []);
+  const cita = citaString ? JSON.parse(citaString) : null;
+  const doctor = doctorString ? JSON.parse(doctorString) : null;
 
-  const readableDate = selectedDate
-    ? new Date(selectedDate).toLocaleDateString('es-ES', {
+  // Usamos el ID de la cita creada como el código del ticket
+  const ticketCode = cita?.id || 'N/A';
+
+  const readableDate = cita?.startTime
+    ? new Date(cita.startTime).toLocaleDateString('es-ES', {
         weekday: 'short',
         year: 'numeric',
         month: 'short',
         day: 'numeric',
       })
     : '';
+  
+  const readableTime = cita?.startTime
+    ? new Date(cita.startTime).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+    : '';
+
+  useEffect(() => {
+    // Si no se recibió la cita creada, redirigir al inicio del flujo
+    if (!cita || !doctor) {
+      router.replace('/(app)/(clientes)/(tabs)/crear-cita');
+    }
+  }, [cita, doctor, router]);
 
   const handleFinish = () => {
-    resetCita();
+    // El contexto ya se limpió, pero lo llamamos por si acaso el usuario llega aquí por otra vía.
+    resetCita(); 
     router.push('/(app)/(clientes)/(tabs)/crear-cita');
   };
 
@@ -54,16 +63,11 @@ export default function TicketScreen() {
         </View>
 
         <View style={styles.ticketBody}>
-          <View style={styles.initialsWrap}>
-            <View style={styles.initialsCircle}>
-              <Text style={styles.initialsText}>{getInitials(selectedDoctor?.name)}</Text>
-            </View>
-          </View>
-          <View style={{ marginLeft: 12 }}>
-            <Text style={styles.ticketName}>{selectedDoctor?.name}</Text>
-            <Text style={styles.ticketSpec}>{selectedDoctor?.specialty}</Text>
-            <Text style={styles.ticketMeta}>Fecha: {readableDate}</Text>
-            <Text style={styles.ticketMeta}>Hora: {selectedTime}</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.ticketName}>{doctor?.name}</Text>
+            <Text style={styles.ticketSpec}>{doctor?.specialty}</Text>
+            <Text style={styles.ticketMeta}>Fecha: {readableDate || 'No disponible'}</Text>
+            <Text style={styles.ticketMeta}>Hora: {readableTime || 'No disponible'}</Text>
             <Text style={styles.ticketMeta}>Paciente: {user?.name || 'No disponible'}</Text>
           </View>
         </View>
@@ -139,27 +143,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.04,
     shadowRadius: 12,
     elevation: 5,
-  },
-  initialsWrap: {
-    width: 86,
-    height: 86,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  initialsCircle: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
-    backgroundColor: '#EAF1FF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#D7E8FF',
-  },
-  initialsText: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#0B4EF2',
   },
   ticketName: {
     fontWeight: '800',

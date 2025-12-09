@@ -1,26 +1,23 @@
-import { StyleSheet, Text, View, TouchableOpacity, ScrollView, FlatList } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, ScrollView, FlatList, ActivityIndicator } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useContext, useMemo } from 'react';
+import { useContext, useMemo, useState, useEffect, useCallback } from 'react';
 import { CitaContext } from './+context/CitaContext';
-
-const TIME_SLOTS = ['09:00', '09:30', '10:00', '11:00', '13:00', '14:30', '16:00', '17:30'];
-
-const getInitials = (name) => {
-  if (!name) return '';
-  const parts = name.split(' ');
-  if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
-  return (parts[0][0] + parts[1][0]).toUpperCase();
-};
+import { getDoctorAvailability } from '../../../../../src/services/appointmentService';
 
 export default function FechaScreen() {
   const router = useRouter();
-  const { selectedDoctor, selectedDate, setSelectedDate, selectedTime, setSelectedTime } = useContext(CitaContext);
+  const { selectedDoctor, selectedDate, setSelectedDate, selectedSlot, setSelectedSlot } = useContext(CitaContext);
+
+  const [timeSlots, setTimeSlots] = useState([]);
+  const [isLoadingTimes, setIsLoadingTimes] = useState(false);
+  const [isInitialLoad, setIsInitialLoad] = useState(true); // Nuevo estado para la carga inicial
+  const [errorTimes, setErrorTimes] = useState(null);
 
   const dates = useMemo(() => {
     const list = [];
     const today = new Date();
-    for (let i = 1; i <= 14; i++) {
+    for (let i = 1; i <= 7; i++) { // Mostrar solo los próximos 7 días
       const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() + i);
       const yyyy = d.getFullYear();
       const mm = String(d.getMonth() + 1).padStart(2, '0');
@@ -32,8 +29,50 @@ export default function FechaScreen() {
     return list;
   }, []);
 
+  const fetchAvailability = useCallback(async (date) => {
+    if (!selectedDoctor?.id) return;
+    setIsLoadingTimes(true);
+    setErrorTimes(null);
+    setTimeSlots([]);
+    try {
+      const availabilityData = await getDoctorAvailability(selectedDoctor.id, date);
+      // Si la API devuelve un mensaje específico y no hay horarios, lo mostramos.
+      if (availabilityData.message && availabilityData.available.length === 0) {
+        setErrorTimes(availabilityData.message);
+        setTimeSlots([]);
+      } else {
+        setTimeSlots(availabilityData.available); // Guardamos el array de objetos {start, end}
+      }
+    } catch (err) {
+      // Si el error de la API tiene un mensaje, lo mostramos.
+      const apiMessage = err?.message || 'No se pudo cargar la disponibilidad.';
+      setErrorTimes(apiMessage);
+      console.error("Error fetching availability:", err);
+    } finally {
+      setIsLoadingTimes(false);
+    }
+  }, [selectedDoctor]);
+
+  useEffect(() => {
+    // Este efecto se encarga de cargar la disponibilidad cuando la pantalla se monta
+    // o cuando el doctor seleccionado cambia.
+    if (dates.length > 0) {
+      const defaultDate = dates[0].iso;
+      setSelectedDate(defaultDate);
+      fetchAvailability(defaultDate);
+    }
+  }, [selectedDoctor, dates, fetchAvailability]); // Depende del doctor y la lista de fechas
+
+  const handleDateSelect = (dateISO) => {
+    if (selectedDate === dateISO) return; // No recargar si la fecha es la misma
+
+    setSelectedDate(dateISO);
+    setSelectedSlot(null);
+    fetchAvailability(dateISO);
+  };
+
   const handleContinue = () => {
-    if (selectedDate && selectedTime) {
+    if (selectedDate && selectedSlot) {
       router.push('/(app)/(clientes)/(tabs)/crear-cita/resumen');
     }
   };
@@ -41,7 +80,7 @@ export default function FechaScreen() {
   return (
     <SafeAreaView style={styles.safe}>
       <Stack.Screen options={{ title: 'Seleccionar fecha y hora', headerShown: true }} />
-
+      
       <View style={styles.headerRow}>
         <TouchableOpacity onPress={() => router.back()}>
           <Text style={styles.linkText}>← Doctores</Text>
@@ -52,15 +91,11 @@ export default function FechaScreen() {
 
       {/* Info del Doctor */}
       <View style={styles.doctorInfoContainer}>
-        <View style={styles.initialsWrap}>
-          <View style={styles.initialsCircle}>
-            <Text style={styles.initialsText}>{getInitials(selectedDoctor?.name)}</Text>
-          </View>
-        </View>
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, paddingLeft: 10 }}>
           <Text style={styles.doctorInfoName}>{selectedDoctor?.name}</Text>
-          <Text style={styles.doctorInfoSpec}>{selectedDoctor?.specialty}</Text>
-          <Text style={styles.doctorInfoRating}>⭐ {selectedDoctor?.rating.toFixed(1)}</Text>
+          <Text style={styles.doctorInfoSpec}>{selectedDoctor?.specialty} - {selectedDoctor?.biography}</Text>
+          <Text style={styles.doctorInfoAddress}>{selectedDoctor?.address}</Text>
+          <Text style={styles.doctorInfoDistance}>Aprox. {(selectedDoctor?.distance / 1000).toFixed(1)} km de tu ubicación</Text>
         </View>
       </View>
 
@@ -80,10 +115,7 @@ export default function FechaScreen() {
               return (
                 <TouchableOpacity
                   style={[styles.dayCard, chosen && styles.dayCardActive]}
-                  onPress={() => {
-                    setSelectedDate(item.iso);
-                    setSelectedTime(null);
-                  }}
+                  onPress={() => handleDateSelect(item.iso)}
                 >
                   <Text style={[styles.dayLabel, chosen && styles.dayLabelActive]}>{item.label}</Text>
                   <Text style={[styles.dateNumber, chosen && styles.dateNumberActive]}>{item.dateNumber}</Text>
@@ -97,29 +129,38 @@ export default function FechaScreen() {
         <View style={[styles.containerSection, { marginTop: 20 }]}>
           <Text style={styles.label}>Horarios</Text>
 
-          <View style={styles.timeGrid}>
-            {TIME_SLOTS.map((t) => {
-              const chosen = t === selectedTime;
-              return (
-                <TouchableOpacity
-                  key={t}
-                  style={[styles.timeChip, chosen && styles.timeChipActive]}
-                  onPress={() => setSelectedTime(t)}
-                >
-                  <Text style={[styles.timeChipText, chosen && styles.timeChipTextActive]}>{t}</Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+          {isLoadingTimes ? (
+            <ActivityIndicator size="large" color="#0B4EF2" style={{ marginTop: 20 }} />
+          ) : errorTimes ? (
+            <Text style={styles.errorText}>{errorTimes}</Text>
+          ) : timeSlots.length > 0 ? (
+            <View style={styles.timeGrid}>
+              {timeSlots.map((slot) => {
+                const displayTime = new Date(slot.start).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+                const chosen = selectedSlot?.start === slot.start;
+                return (
+                  <TouchableOpacity
+                    key={slot.start}
+                    style={[styles.timeChip, chosen && styles.timeChipActive]}
+                    onPress={() => setSelectedSlot(slot)}
+                  >
+                    <Text style={[styles.timeChipText, chosen && styles.timeChipTextActive]}>{displayTime}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          ) : (
+            <Text style={styles.emptyText}>No hay horarios disponibles para este día.</Text>
+          )}
 
           <View style={{ marginTop: 30 }}>
             <TouchableOpacity
-              style={[styles.primaryButton, !(selectedDate && selectedTime) && styles.disabledButton]}
+              style={[styles.primaryButton, !(selectedDate && selectedSlot) && styles.disabledButton]}
               onPress={handleContinue}
-              activeOpacity={selectedDate && selectedTime ? 0.8 : 1}
+              activeOpacity={selectedDate && selectedSlot ? 0.8 : 1}
             >
               <Text style={styles.primaryButtonText}>
-                {selectedDate && selectedTime ? 'Continuar' : 'Selecciona fecha y hora'}
+                {selectedDate && selectedSlot ? 'Continuar' : 'Selecciona fecha y hora'}
               </Text>
             </TouchableOpacity>
           </View>
@@ -164,28 +205,6 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 4,
   },
-  initialsWrap: {
-    width: 60,
-    height: 60,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 14,
-  },
-  initialsCircle: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: '#EAF1FF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#D7E8FF',
-  },
-  initialsText: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#0B4EF2',
-  },
   doctorInfoName: {
     fontSize: 16,
     fontWeight: '800',
@@ -196,11 +215,22 @@ const styles = StyleSheet.create({
     color: '#6B82B1',
     marginTop: 2,
   },
-  doctorInfoRating: {
+  doctorInfoAddress: {
+    fontSize: 12,
+    color: '#36548B',
+    marginTop: 6,
+    marginBottom: 8,
+  },
+  doctorInfoDistance: {
     fontSize: 13,
     color: '#0B4EF2',
     fontWeight: '700',
-    marginTop: 4,
+    backgroundColor: '#EEF4FF',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+    overflow: 'hidden',
   },
   scrollContainerDate: {
     paddingBottom: 40,
@@ -305,5 +335,17 @@ const styles = StyleSheet.create({
   },
   disabledButton: {
     opacity: 0.5,
+  },
+  errorText: {
+    textAlign: 'center',
+    color: '#D9534F',
+    marginTop: 20,
+    fontSize: 16,
+  },
+  emptyText: {
+    textAlign: 'center',
+    color: '#6B82B1',
+    marginTop: 20,
+    fontSize: 16,
   },
 });
