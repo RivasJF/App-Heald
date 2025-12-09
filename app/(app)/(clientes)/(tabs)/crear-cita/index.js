@@ -1,101 +1,169 @@
-import { Image, Text, View, StyleSheet, Dimensions, Animated, TouchableOpacity } from 'react-native';
+import { Stack, useRouter } from 'expo-router';
+import MapView, { Marker } from "react-native-maps";
+import * as Location from "expo-location";
+import { useEffect, useState, useContext } from "react";
+import { View, StyleSheet, Text, ActivityIndicator, TouchableOpacity, Alert } from "react-native";
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { CitaContext } from './+context/CitaContext';
 
-export default function CrearCita() {
+// Constante para las deltas iniciales (nivel de zoom)
+const INITIAL_DELTA = 0.005;
+
+export default function SelectLocationScreen() {
   const router = useRouter();
-  const btnScale = new Animated.Value(1);
+  const { setSelectedLocation } = useContext(CitaContext);
 
-  const pressIn = () => Animated.spring(btnScale, { toValue: 0.98, useNativeDriver: true }).start();
-  const pressOut = () => Animated.spring(btnScale, { toValue: 1, useNativeDriver: true }).start();
+  const [location, setLocation] = useState(null); // { latitude: number, longitude: number }
+  const [address, setAddress] = useState("Cargando dirección...");
+  const [isLoading, setIsLoading] = useState(true);
+
+  // 1. Función para obtener la dirección (Geocodificación Inversa)
+  const fetchAddress = async (coords) => {
+    try {
+      setAddress("Buscando dirección...");
+      const reverseGeocode = await Location.reverseGeocodeAsync(coords);
+      if (reverseGeocode.length > 0) {
+        const addr = reverseGeocode[0];
+        const formattedAddress = `${addr.street} ${addr.streetNumber || ''}, ${addr.city}, ${addr.region}`;
+        setAddress(formattedAddress);
+      } else {
+        setAddress("Dirección no encontrada.");
+      }
+    } catch (error) {
+      console.error("Error al obtener la dirección:", error);
+      setAddress("Error al cargar la dirección.");
+    }
+  };
+
+  // 2. Efecto para obtener la ubicación actual al inicio
+  useEffect(() => {
+    (async () => {
+      setIsLoading(true);
+      // Ahora solo verificamos el permiso, no lo solicitamos.
+      const { status } = await Location.getForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(
+          "Permiso Requerido", 
+          "No se puede acceder a la ubicación. Por favor, habilita el permiso en la configuración de tu dispositivo para continuar."
+        );
+        setIsLoading(false);
+        router.back(); // Enviamos al usuario de vuelta si no hay permiso.
+        return; 
+      }
+      const loc = await Location.getCurrentPositionAsync({});
+      const initialCoords = loc.coords;
+      setLocation(initialCoords);
+      await fetchAddress(initialCoords);
+      setIsLoading(false);
+    })();
+  }, []);
+
+  // 3. Manejador de toque en el mapa
+  const handleMapPress = (e) => {
+    const newCoords = e.nativeEvent.coordinate;
+    setLocation(newCoords);
+    fetchAddress(newCoords);
+  };
+
+  // 4. Manejador para guardar y continuar
+  const handleConfirmLocation = () => {
+    if (location) {
+      // Guardar en el contexto
+      setSelectedLocation({ ...location, address });
+      // Navegar a la siguiente pantalla
+      router.push('/(app)/(clientes)/(tabs)/crear-cita/doctor');
+    }
+  };
+
+  if (isLoading || !location) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#0B4EF2" />
+        <Text style={{ marginTop: 10, color: '#072B66' }}>Cargando mapa y ubicación...</Text>
+      </View>
+    );
+  }
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <View style={styles.hero}>
-        <Text style={styles.heroTitle}>HealthCare Premium</Text>
-        <Text style={styles.heroSubtitle}>Agenda tu cita con especialistas de confianza</Text>
-
-        <Image
-          source={{
-            uri: 'https://images.unsplash.com/photo-1580281657521-54a3a2d7f8f9?q=80&w=1000&auto=format&fit=crop',
-          }}
-          style={styles.heroImage}
-          resizeMode="cover"
+    <SafeAreaView style={styles.container}>
+      <Stack.Screen options={{ title: 'Selecciona Ubicación', headerShown: true }} />
+      <MapView
+        style={styles.map}
+        initialRegion={{
+          latitude: location.latitude,
+          longitude: location.longitude,
+          latitudeDelta: INITIAL_DELTA,
+          longitudeDelta: INITIAL_DELTA,
+        }}
+        onPress={handleMapPress}
+        region={{
+          latitude: location.latitude,
+          longitude: location.longitude,
+          latitudeDelta: INITIAL_DELTA,
+          longitudeDelta: INITIAL_DELTA,
+        }}
+      >
+        <Marker
+          coordinate={location}
+          title="Ubicación Seleccionada"
+          description={address}
         />
+      </MapView>
 
-        <Animated.View style={{ transform: [{ scale: btnScale }] }}>
-          <TouchableOpacity
-            style={styles.primaryButton}
-            onPress={() => router.push('/(app)/(clientes)/(tabs)/crear-cita/doctor')}
-            activeOpacity={0.9}
-            onPressIn={pressIn}
-            onPressOut={pressOut}
-          >
-            <Text style={styles.primaryButtonText}>Agendar cita</Text>
-          </TouchableOpacity>
-        </Animated.View>
-
-        <Text style={styles.smallNote}>Atención prioritaria · Pagos seguros · Recordatorios</Text>
+      <View style={styles.infoPanel}>
+        <Text style={styles.addressText}>📍 {address}</Text>
+        <Text style={styles.coordsText}>Lat: {location.latitude.toFixed(5)}, Lng: {location.longitude.toFixed(5)}</Text>
+        <TouchableOpacity style={styles.saveButton} onPress={handleConfirmLocation}>
+          <Text style={styles.saveButtonText}>Confirmar Ubicación</Text>
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
 }
 
-const { width } = Dimensions.get('window');
 const styles = StyleSheet.create({
-  safe: {
+  container: {
     flex: 1,
-    backgroundColor: '#F5F8FF',
+    backgroundColor: '#fff',
   },
-  hero: {
-    padding: 24,
-    alignItems: 'center',
-    gap: 16,
+  loadingContainer: {
+    flex: 1,
     justifyContent: 'center',
-    flex: 1,
-  },
-  heroTitle: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#072B66',
-  },
-  heroSubtitle: {
-    fontSize: 16,
-    color: '#4B6AA3',
-    textAlign: 'center',
-    maxWidth: '85%',
-  },
-  heroImage: {
-    width: width * 0.9,
-    height: 160,
-    borderRadius: 12,
-    marginTop: 8,
-    shadowColor: '#072B66',
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 6,
-  },
-  primaryButton: {
-    backgroundColor: '#0B4EF2',
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    width: 220,
-    alignSelf: 'center',
     alignItems: 'center',
-    shadowColor: '#0B4EF2',
-    shadowOpacity: 0.18,
-    shadowRadius: 12,
-    elevation: 6,
   },
-  primaryButtonText: {
-    color: '#FFFFFF',
-    fontWeight: '700',
+  map: {
+    flex: 3,
+    width: '100%',
+  },
+  infoPanel: {
+    flex: 1,
+    padding: 20,
+    backgroundColor: '#F5F8FF',
+    borderTopWidth: 1,
+    borderTopColor: '#D7E8FF',
+    justifyContent: 'center',
+  },
+  addressText: {
     fontSize: 16,
+    fontWeight: '600',
+    color: '#072B66',
+    marginBottom: 8,
   },
-  smallNote: {
-    color: '#7A93C7',
-    fontSize: 13,
-    marginTop: 8,
+  coordsText: {
+    fontSize: 14,
+    color: '#6B82B1',
+    marginBottom: 16,
+  },
+  saveButton: {
+    backgroundColor: '#0B4EF2',
+    padding: 15,
+    borderRadius: 12,
+    alignSelf: 'stretch',
+  },
+  saveButtonText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
 });

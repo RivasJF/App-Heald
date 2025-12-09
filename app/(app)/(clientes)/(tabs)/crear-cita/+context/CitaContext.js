@@ -6,11 +6,13 @@ export function CitaProvider({ children }) {
   const [selectedDoctor, setSelectedDoctor] = useState(null);
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedTime, setSelectedTime] = useState(null);
+  const [selectedLocation, setSelectedLocation] = useState(null); // Nuevo estado para la ubicación
 
   const resetCita = useCallback(() => {
     setSelectedDoctor(null);
     setSelectedDate(null);
     setSelectedTime(null);
+    setSelectedLocation(null); // Limpiar también la ubicación
   }, []);
 
   const value = {
@@ -20,6 +22,8 @@ export function CitaProvider({ children }) {
     setSelectedDate,
     selectedTime,
     setSelectedTime,
+    selectedLocation,
+    setSelectedLocation,
     resetCita,
   };
 

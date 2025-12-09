@@ -1,9 +1,25 @@
 import { Slot, Redirect } from "expo-router";
 import { useAuth } from "../../src/context/AuthContext";
-import { ActivityIndicator, View } from "react-native";
+import { ActivityIndicator, View, Alert } from "react-native";
+import { useEffect } from "react";
+import * as Location from 'expo-location';
 
 export default function RootLayout() {
   const { loading, isAuthenticated } = useAuth();
+
+  useEffect(() => {
+    const requestLocationPermission = async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(
+          "Permiso de Ubicación",
+          "La aplicación necesita acceso a tu ubicación para funcionar correctamente. Por favor, habilítalo en la configuración."
+        );
+      }
+    };
+
+    if (isAuthenticated) requestLocationPermission();
+  }, [isAuthenticated]);
 
   if (loading) {
     return (
