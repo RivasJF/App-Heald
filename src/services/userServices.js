@@ -10,16 +10,22 @@ const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));//delay pa
 // --- Peticiones Públicas ---
 
 /**
- * Registra un nuevo usuario. (POST /user)
- * @param {object} userData - Datos del usuario (ej: { email, password, name, ... })
- * @returns {Promise<object>} El usuario creado.
+ * Registra un nuevo usuario en el sistema. (POST /users/register)
+ * @param {object} userData - Los datos del usuario a registrar.
+ * @param {string} userData.name - Nombre completo del usuario.
+ * @param {string} userData.email - Correo electrónico.
+ * @param {string} userData.password - Contraseña.
+ * @param {string} userData.phoneNumber - Número de teléfono.
+ * @param {string} userData.birthDate - Fecha de nacimiento en formato ISO (YYYY-MM-DDTHH:mm:ss.sssZ).
+ * @param {string} userData.role - Rol del usuario ('CLIENT' o 'DOCTOR').
+ * @returns {Promise<object>} La respuesta del servidor.
  */
 export const registerUser = async (userData) => {
   try {
+    // Se hace la petición al endpoint de registro de tu API
     const response = await api.post(USER_BASE_PATH, userData);
     return response.data;
   } catch (error) {
-    // Manejo de errores (ej: error.response.data.message)
     throw error.response ? error.response.data : error;
   }
 };

@@ -1,10 +1,10 @@
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 
-const LOCAL_IP = '192.168.0.25';
-const PORT = '3000'; 
+const LOCAL = '192.168.0.27:3000';
+const WEB = 'server-heald.onrender.com/'; 
 
-const API_BASE_URL = `https://server-heald.onrender.com`;
+const API_BASE_URL = `http://${WEB}`;
 
 const api = axios.create({
   baseURL: API_BASE_URL,
