@@ -7,11 +7,11 @@ import {
   TouchableOpacity,
   Image,
   ScrollView,
-  SafeAreaView,
   FlatList,
   Dimensions,
   Animated,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function CrearCita() {
 
@@ -124,20 +124,6 @@ export default function CrearCita() {
             </TouchableOpacity>
           </Animated.View>
 
-<<<<<<< HEAD:app/(app)/(clientes)/crear-cita.js
-=======
-          {/* Logout Button */}
-          <TouchableOpacity
-            style={[styles.primaryButton, { backgroundColor: '#FF6347', marginTop: 10 }]}
-            onPress={signOut}
-            activeOpacity={0.9}
-            onPressIn={pressIn}
-            onPressOut={pressOut}
-          >
-            <Text style={styles.primaryButtonText}>Cerrar sesión</Text>
-          </TouchableOpacity>
-
->>>>>>> 0901fcd5108a07b978d1b8ee522800c2ba5a163f:app/(app)/(clientes)/index.js
           <Text style={styles.smallNote}>Atención prioritaria · Pagos seguros · Recordatorios</Text>
         </View>
 
