@@ -1,4 +1,4 @@
-import { StatusBar } from 'expo-status-bar';
+
 import { StyleSheet, Text, View } from 'react-native';
 import { Stack } from 'expo-router';
 
@@ -12,10 +12,9 @@ import {
   Dimensions,
   Animated,
 } from 'react-native';
-import { useAuth } from '../../../src/context/AuthContext';
 
-export default function Index() {
-  const { signOut } = useAuth();
+export default function CrearCita() {
+
   const [screen, setScreen] = useState('bienvenida'); // bienvenida / doctor / fecha / resumen / ticket
 
   // Selecciones
@@ -117,21 +116,9 @@ export default function Index() {
             </TouchableOpacity>
           </Animated.View>
 
-          {/* Logout Button */}
-          <TouchableOpacity
-            style={[styles.primaryButton, { backgroundColor: '#FF6347', marginTop: 10 }]} // Example styling for logout button
-            onPress={signOut}
-            activeOpacity={0.9}
-            onPressIn={pressIn}
-            onPressOut={pressOut}
-          >
-            <Text style={styles.primaryButtonText}>Cerrar sesión</Text>
-          </TouchableOpacity>
-
           <Text style={styles.smallNote}>Atención prioritaria · Pagos seguros · Recordatorios</Text>
         </View>
 
-        <StatusBar style="auto" />
       </SafeAreaView>
     );
   }
@@ -178,7 +165,6 @@ export default function Index() {
           ))}
         </ScrollView>
 
-        <StatusBar style="auto" />
       </SafeAreaView>
     );
   }
@@ -270,7 +256,6 @@ export default function Index() {
 
         </ScrollView>
 
-        <StatusBar style="auto" />
       </SafeAreaView>
     );
   }
@@ -324,7 +309,6 @@ export default function Index() {
 
         </ScrollView>
 
-        <StatusBar style="auto" />
       </SafeAreaView>
     );
   }
@@ -386,7 +370,6 @@ export default function Index() {
           </TouchableOpacity>
         </View>
 
-        <StatusBar style="auto" />
       </SafeAreaView>
     );
   }
