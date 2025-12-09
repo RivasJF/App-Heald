@@ -1,7 +1,7 @@
 import { Stack } from 'expo-router';
 import { View, Text, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
+ 
 export default function MisCitas() {
   return (
     <SafeAreaView style={styles.container}>

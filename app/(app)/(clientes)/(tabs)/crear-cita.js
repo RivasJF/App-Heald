@@ -1,5 +1,4 @@
-
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from "react-native";
 import { Stack } from 'expo-router';
 
 import React, { useState, useMemo } from 'react';
@@ -12,8 +11,10 @@ import {
   Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAuth } from "../../../../src/context/AuthContext";
 
 export default function CrearCita() {
+  const { user } = useAuth(); // Obtenemos el usuario del contexto
 
   const [screen, setScreen] = useState('bienvenida'); // bienvenida / doctor / fecha / resumen / ticket
 
@@ -37,7 +38,7 @@ export default function CrearCita() {
       name: 'Dr. Juan Pérez',
       specialty: 'Sexologia',
       sex: 'Master del trenzdo',
-      photo: Image.resolveAssetSource(require('../../../assets/foto.jpeg')).uri,
+      photo: Image.resolveAssetSource(require('../../../../assets/foto.jpeg')).uri,
       rating: 4.9,
     },
     {
@@ -319,7 +320,7 @@ export default function CrearCita() {
           {/* Solo el nombre del paciente */}
           <View style={styles.infoBox}>
             <Text style={styles.infoTitle}>Datos del Paciente</Text>
-            <Text style={styles.infoLine}>Nombre: Juan Pérez García</Text>
+            <Text style={styles.infoLine}>Nombre: {user?.name || 'No disponible'}</Text>
           </View>
 
           <View style={{ width: '100%', marginTop: 10 }}>
@@ -372,7 +373,7 @@ export default function CrearCita() {
               <Text style={styles.ticketSpec}>{selectedDoctor.specialty}</Text>
               <Text style={styles.ticketMeta}>Fecha: {readableDate}</Text>
               <Text style={styles.ticketMeta}>Hora: {selectedTime}</Text>
-              <Text style={styles.ticketMeta}>Paciente: Juan Pérez García</Text>
+              <Text style={styles.ticketMeta}>Paciente: {user?.name || 'No disponible'}</Text>
             </View>
           </View>
 
