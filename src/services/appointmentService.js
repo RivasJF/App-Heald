@@ -19,6 +19,21 @@ export const findByPatient = async (patientId) => {
 };
 
 /**
+ * Busca todas las citas de un doctor específico. (GET /appointment/doctor/:doctorId)
+ * @param {string} doctorId - El ID del doctor.
+ * @returns {Promise<Array<object>>} Una lista de las citas encontradas para el doctor.
+ */
+export const findByDoctor = async (doctorId) => {
+  try {
+    const response = await api.get(`${APPOINTMENT_BASE_PATH}/doctor/${doctorId}`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error al buscar citas para el doctor ${doctorId}:`, error.response ? error.response.data : error);
+    throw error.response ? error.response.data : error;
+  }
+};
+
+/**
  * Obtiene los horarios disponibles para un doctor en una fecha específica. (GET /appointment/availability/:doctorId/:date)
  * @param {string} doctorId - El ID del doctor.
  * @param {string} date - La fecha en formato 'YYYY-MM-DD'.
