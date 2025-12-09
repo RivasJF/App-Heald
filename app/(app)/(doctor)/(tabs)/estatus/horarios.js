@@ -1,306 +1,209 @@
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Switch } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, FlatList } from "react-native";
 import { Stack, useRouter } from "expo-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useAuth } from "../../../../../src/context/AuthContext";
+import { getScheduleByUserId } from "../../../../../src/services/scheduleService";
+import { getDoctorByUserId } from "../../../../../src/services/doctorService";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { FontAwesome } from "@expo/vector-icons";
 
 // Mapeo: Abreviatura (para el botón) -> Nombre completo (para el estado de datos)
 const DIAS_MAP = {
-  Lun: "Lunes",
-  Mar: "Martes",
-  Mié: "Miércoles",
-  Jue: "Jueves",
-  Vie: "Viernes",
-  Sáb: "Sábado",
-  Dom: "Domingo", 
+  Lun: "Lunes",
+  Mar: "Martes",
+  Mié: "Miércoles",
+  Jue: "Jueves",
+  Vie: "Viernes",
+  Sáb: "Sábado",
+  Dom: "Domingo",
 };
 
-const DIAS_ABREVIADOS = Object.keys(DIAS_MAP);
-
-// Días de Lunes a Viernes
-const DIAS_SEMANA_LUN_VIE = DIAS_ABREVIADOS.slice(0, 5); 
-// Días de Sábado y Domingo
-const DIAS_FIN_SEMANA = DIAS_ABREVIADOS.slice(5); 
+// Mapeo inverso para procesar la respuesta de la API
+const API_DAY_TO_FULL_NAME = {
+  MON: "Lunes",
+  TUE: "Martes",
+  WED: "Miércoles",
+  THU: "Jueves",
+  FRI: "Viernes",
+  SAT: "Sábado",
+  SUN: "Domingo",
+};
 
 // Colores:
 const ACCENT_COLOR = "#3F51B5"; // Azul índigo
-const ACTIVE_BG_COLOR = "#E8EAF6";
-const INACTIVE_BG_COLOR = "#F5F5F5";
 const TEXT_DARK = "#212121";
-const TEXT_MUTED = "#757575";
 
 export default function Horarios() {
-  const router = useRouter();
+  const router = useRouter();
+  const { user } = useAuth();
 
-  const [clinicaActiva, setClinicaActiva] = useState(true);
-  
-  // Estado que guarda los NOMBRES COMPLETOS de los días abiertos
-  const [diasAbiertos, setDiasAbiertos] = useState(["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"]); 
+  const [schedule, setSchedule] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const [horaSeleccionada, setHoraSeleccionada] = useState("9:00 AM - 6:00 PM");
+  useEffect(() => {
+    if (user?.id) {
+      setLoading(true);
+      // 1. Obtener el perfil del doctor para conseguir el ID de DOCTOR
+      getDoctorByUserId(user.id)
+        .then(doctorProfile => {
+          if (!doctorProfile?.id) {
+            throw new Error("Perfil de doctor no encontrado.");
+          }
+          // 2. Usar el ID de DOCTOR para obtener el horario
+          return getScheduleByUserId(doctorProfile.id);
+        })
+        .then(schedule => {
+          if (schedule && schedule.days) {
+            setSchedule(schedule);
+          }
+          setError(null);
+        })
+        .catch(err => {
+          console.error("Error al cargar el horario:", err);
+          setError("No se pudo cargar el horario.");
+        })
+        .finally(() => setLoading(false));
+    }
+  }, [user]);
 
-  const bloquesHorarios = [
-    "9:00 AM - 6:00 PM",
-    "8:00 AM - 5:00 PM",
-    "10:00 AM - 7:00 PM",
-    "Mañana (8-12 PM)",
-    "Tarde (2-6 PM)",
-  ];
+  const renderScheduleItem = ({ item: day }) => {
+    const breakTime = schedule.breaks.find(b => b.day === day.day);
+    return (
+      <View style={styles.dayCard}>
+        <Text style={styles.dayTitle}>{API_DAY_TO_FULL_NAME[day.day]}</Text>
+        <View style={styles.detailRow}>
+          <FontAwesome name="clock-o" size={16} color={ACCENT_COLOR} />
+          <Text style={styles.detailText}>{day.startTime} - {day.endTime}</Text>
+        </View>
+        {breakTime && (
+          <View style={styles.detailRow}>
+            <FontAwesome name="coffee" size={16} color="#757575" />
+            <Text style={styles.detailText}>Descanso: {breakTime.startTime} - {breakTime.endTime}</Text>
+          </View>
+        )}
+      </View>
+    );
+  };
 
-  // Función de toggle
-  const toggleDiaAbierto = (abreviatura) => {
-    const diaCompleto = DIAS_MAP[abreviatura]; 
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={ACCENT_COLOR} />
+        <Text style={{ marginTop: 10 }}>Cargando horario...</Text>
+      </SafeAreaView>
+    );
+  }
 
-    setDiasAbiertos((prevDias) => {
-      if (prevDias.includes(diaCompleto)) {
-        return prevDias.filter((d) => d !== diaCompleto);
-      } else {
-        return [...prevDias, diaCompleto];
-      }
-    });
-  };
-  
-  // Renderiza un día individual (función auxiliar para no repetir código)
-  const renderDiaButton = (abreviatura) => {
-    const diaCompleto = DIAS_MAP[abreviatura];
-    const esAbierto = diasAbiertos.includes(diaCompleto); 
-    return (
-      <TouchableOpacity
-        key={abreviatura}
-        style={[
-          styles.diaButton,
-          esAbierto ? styles.diaButtonOpen : styles.diaButtonClosed
-        ]}
-        onPress={() => toggleDiaAbierto(abreviatura)}
-      >
-        <Text style={[styles.diaText, esAbierto ? styles.diaTextOpen : styles.diaTextClosed]}>
-          {abreviatura}
-        </Text>
-      </TouchableOpacity>
-    );
-  };
+  return (
+    <SafeAreaView style={styles.container}>
+      <Stack.Screen options={{ headerShown: false }} />
 
-  const confirmarCambios = () => {
-    const resumen = `Configuración guardada:\n- Consultorio: ${clinicaActiva ? "Activo" : "Inactivo"}\n- Días: ${diasAbiertos.join(", ") || "Ninguno"}\n- Bloque: ${horaSeleccionada || "No definido"}`;
-    alert(resumen);
-  };
+      {/* Cabecera */}
+      <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+        <Text style={styles.backButtonText}>← Panel de Control</Text>
+      </TouchableOpacity>
+      <Text style={styles.title}>Mi Horario de Atención</Text>
 
-  return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
-      <Stack.Screen options={{ headerShown: false }} />
+      {error && <Text style={styles.errorText}>{error}</Text>}
 
-      {/* Cabecera */}
-      <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-        <Text style={styles.backButtonText}>←</Text>
-      </TouchableOpacity>
-      <Text style={styles.title}>Configuración de Horarios</Text>
-      <View style={styles.separator} />
+      {schedule ? (
+        <>
+          <View style={styles.summaryCard}>
+            <FontAwesome name="hourglass-half" size={20} color={ACCENT_COLOR} />
+            <Text style={styles.summaryText}>
+              Tiempo de consulta: <Text style={{ fontWeight: 'bold' }}>{schedule.consultationTime} minutos</Text>
+            </Text>
+          </View>
 
-
-      {/* 1. Control General (Activar/Desactivar) */}
-      <View style={styles.card}>
-        <View style={styles.switchContainer}>
-          <View>
-            <Text style={styles.switchLabel}>Consultorio Activo</Text>
-            <Text style={styles.switchSubLabel}>Permitir citas en línea</Text>
-          </View>
-          <Switch
-            trackColor={{ false: INACTIVE_BG_COLOR, true: ACCENT_COLOR }}
-            thumbColor={"#fff"}
-            value={clinicaActiva}
-            onValueChange={setClinicaActiva}
-          />
-        </View>
-      </View>
-
-      
-      {/* 2. Selección de Días de Apertura (En dos filas) */}
-      <Text style={styles.sectionTitle}>Días de Atención Semanal</Text>
-      <View style={styles.diasContainer}>
-        {/* Primera Fila: Lunes a Viernes */}
-        <View style={styles.diasRow}>
-          {DIAS_SEMANA_LUN_VIE.map(renderDiaButton)}
-        </View>
-
-        {/* Segunda Fila: Sábado y Domingo */}
-        <View style={styles.diasRow}>
-          {DIAS_FIN_SEMANA.map(renderDiaButton)}
-        </View>
-      </View>
-      
-      <View style={styles.separator} />
-
-      {/* 3. Selección de Bloques de Hora */}
-      <Text style={styles.sectionTitle}>Bloque Horario por Defecto</Text>
-      <Text style={styles.sectionSubLabel}>Horario que aplica a los días seleccionados</Text>
-      <View style={styles.horasContainer}>
-        {bloquesHorarios.map((h) => (
-          <TouchableOpacity
-            key={h}
-            style={[
-              styles.horaButton, 
-              horaSeleccionada === h ? styles.horaButtonSelected : styles.horaButtonDefault
-            ]}
-            onPress={() => setHoraSeleccionada(h)}
-          >
-            <Text style={[
-              styles.horaText, 
-              horaSeleccionada === h ? styles.horaTextSelected : styles.horaTextDefault
-            ]}>
-              {h}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-      
-      
-      {/* Botón Confirmar Cambios */}
-      <TouchableOpacity style={styles.confirmButton} onPress={confirmarCambios}>
-        <Text style={styles.confirmButtonText}>Guardar Horarios</Text>
-      </TouchableOpacity>
-    </ScrollView>
-  );
+          <FlatList
+            data={schedule.days}
+            renderItem={renderScheduleItem}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={{ paddingVertical: 10 }}
+            ListEmptyComponent={<Text style={styles.emptyText}>No hay días de trabajo configurados.</Text>}
+          />
+        </>
+      ) : (
+        !loading && <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>No se encontró un horario configurado.</Text>
+        </View>
+      )}
+    </SafeAreaView>
+  );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
-  contentContainer: { paddingHorizontal: 20, paddingVertical: 40, paddingBottom: 100 },
-  
-  /* Cabecera */
-  backButton: {
-    position: 'absolute',
-    top: 40,
-    left: 20,
-    padding: 8,
-    zIndex: 10,
-  },
-  backButtonText: { color: TEXT_MUTED, fontSize: 24, fontWeight: "300" },
-  title: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: TEXT_DARK,
-    marginBottom: 20,
-    textAlign: "center",
-    marginTop: 10,
-  },
+  container: { flex: 1, backgroundColor: "#F5F8FF", padding: 24 },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: "#F5F8FF" },
+  emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 
-  /* Separador */
-  separator: {
-    height: 1,
-    backgroundColor: '#EEEEEE',
-    marginVertical: 25,
-  },
-
-  /* Controles */
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: TEXT_DARK,
-    marginBottom: 8,
-    marginTop: 5,
-  },
-  sectionSubLabel: {
-    fontSize: 13,
-    color: TEXT_MUTED,
-    marginBottom: 15,
-  },
-
-  /* 1. Switch */
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 15,
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    marginBottom: 15,
-  },
-  switchContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: 'space-between',
-  },
-  switchLabel: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: TEXT_DARK,
-  },
-  switchSubLabel: {
-    fontSize: 12,
-    color: TEXT_MUTED,
-  },
-
-  /* 2. Días (Toggle Circular - Minimalista, ahora en dos filas) */
-  diasContainer: {
-    marginVertical: 10,
-  },
-  diasRow: { // Nuevo estilo para las filas de días
-    flexDirection: "row",
-    marginBottom: 15, 
-    justifyContent: 'flex-start',
-    gap: 12, // Espacio entre círculos
-  },
-  diaButton: {
-    width: 45,
-    height: 45,
-    borderRadius: 22.5,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  // Estado: Cerrado
-  diaButtonClosed: {
-    backgroundColor: INACTIVE_BG_COLOR,
-  },
-  diaTextClosed: { color: TEXT_MUTED, fontSize: 14, fontWeight: "500" },
-
-  // Estado: Abierto
-  diaButtonOpen: {
-    backgroundColor: ACCENT_COLOR, 
-    borderWidth: 1,
-    borderColor: ACCENT_COLOR,
-  },
-  diaTextOpen: { color: "white", fontSize: 14, fontWeight: "700" },
-
-  /* 3. Horas (Bloques) */
-  horasContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10,
-    marginTop: 5,
-  },
-  horaButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    borderRadius: 8,
-    borderWidth: 1,
-  },
-  horaButtonDefault: {
-    backgroundColor: INACTIVE_BG_COLOR,
-    borderColor: '#E0E0E0',
-  },
-  horaTextDefault: { color: TEXT_DARK, fontWeight: "500" },
-  
-  horaButtonSelected: {
-    backgroundColor: ACTIVE_BG_COLOR,
-    borderColor: ACCENT_COLOR,
-  },
-  horaTextSelected: { color: ACCENT_COLOR, fontWeight: "700" },
-
-  /* Botón Confirmar */
-  confirmButton: {
-    backgroundColor: ACCENT_COLOR, 
-    padding: 18,
-    borderRadius: 12,
-    alignItems: "center",
-    width: "100%",
-    alignSelf: "center",
-    marginTop: 40,
-    elevation: 3,
-    shadowColor: ACCENT_COLOR,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-  },
-  confirmButtonText: {
-    color: "white",
-    fontSize: 18,
-    fontWeight: "bold",
-  },
+  /* Cabecera */
+  backButton: {
+    alignSelf: 'flex-start',
+    marginBottom: 10,
+  },
+  backButtonText: { color: ACCENT_COLOR, fontSize: 16, fontWeight: "700" },
+  title: {
+    fontSize: 28,
+    fontWeight: "700",
+    color: TEXT_DARK,
+    marginBottom: 15,
+    textAlign: "center",
+  },
+  summaryCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+  },
+  summaryText: {
+    marginLeft: 15,
+    fontSize: 16,
+    color: TEXT_DARK,
+  },
+  dayCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 15,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+  },
+  dayTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: ACCENT_COLOR,
+    marginBottom: 10,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 5,
+  },
+  detailText: {
+    marginLeft: 10,
+    fontSize: 15,
+    color: TEXT_DARK,
+  },
+  errorText: {
+    textAlign: 'center',
+    color: '#D32F2F',
+    marginBottom: 15,
+    fontSize: 15,
+  },
+  emptyText: {
+    textAlign: 'center',
+    color: '#757575',
+    marginTop: 50,
+    fontSize: 16,
+  },
 });

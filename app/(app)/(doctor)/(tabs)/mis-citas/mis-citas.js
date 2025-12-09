@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState, useCallback, useMemo } from 'react';
 import { useAuth } from '../../../../../src/context/AuthContext';
 import { findByDoctor } from '../../../../../src/services/appointmentService';
+import { getDoctorByUserId } from '../../../../../src/services/doctorService';
 import { FontAwesome } from '@expo/vector-icons';
 
 export default function DoctorAppointmentsScreen() {
@@ -15,17 +16,22 @@ export default function DoctorAppointmentsScreen() {
   const [filter, setFilter] = useState('proximas'); // 'proximas' o 'pasadas'
 
   const fetchCitas = useCallback(async () => {
-    // El ID del doctor se obtiene del objeto 'user' que a su vez contiene el perfil del doctor.
-    // Asumimos que user.doctor.id es el ID de doctor correcto.
-    const doctorId = user?.doctor?.id; 
-    if (!doctorId) {
-      setError('No se pudo identificar al doctor.');
+    if (!user?.id) {
       setLoading(false);
       return;
     }
 
     try {
       setLoading(true);
+      // 1. Obtener el perfil del doctor usando el ID de usuario
+      const doctorProfile = await getDoctorByUserId(user.id);
+      if (!doctorProfile?.id) {
+        setError('No se pudo encontrar el perfil del doctor.');
+        setLoading(false);
+        return;
+      }
+      // 2. Usar el ID del perfil del doctor para obtener las citas
+      const doctorId = doctorProfile.id;
       const data = await findByDoctor(doctorId);
       setAllCitas(data);
       setError(null);
