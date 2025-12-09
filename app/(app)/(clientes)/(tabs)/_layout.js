@@ -19,7 +19,7 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="perfil" // Esta será la pestaña central por defecto
+        name="perfil"
         options={{
           title: "Perfil",
           tabBarIcon: ({ color, size }) => <FontAwesome name="user-circle" size={size} color={color} />,

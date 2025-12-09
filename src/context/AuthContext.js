@@ -7,6 +7,7 @@ const AuthContext = createContext();
 export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
+  const [userId, setUserId] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
@@ -32,6 +33,7 @@ export function AuthProvider({ children }) {
         await SecureStore.deleteItemAsync("userToken");
       } finally {
         setUser(storedUser);
+        setUserId(storedUser?.id || null);
         setIsAuthenticated(!!storedUser);
         setLoading(false);
         console.log('AuthContext: loadSession - Finished. Loading:', false, 'IsAuthenticated:', !!storedUser);
@@ -46,12 +48,14 @@ export function AuthProvider({ children }) {
       const { access_token, user: loggedInUser } = await loginUser(email, password);
       await SecureStore.setItemAsync("userToken", access_token);
       setUser(loggedInUser);
+      setUserId(loggedInUser?.id || null);
       setIsAuthenticated(true);
       return loggedInUser;
     } catch (error) {
       console.error("Login failed:", error);
       setIsAuthenticated(false);
       setUser(null);
+      setUserId(null);
       throw error;
     } finally {
       setLoading(false);
@@ -63,6 +67,7 @@ export function AuthProvider({ children }) {
     try {
       await SecureStore.deleteItemAsync("userToken");
       setUser(null);
+      setUserId(null);
       setIsAuthenticated(false);
     } catch (error) {
       console.error("Logout failed:", error);
@@ -73,7 +78,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, setUser, loading, isAuthenticated, setIsAuthenticated, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, setUser, userId, setUserId, loading, isAuthenticated, setIsAuthenticated, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   );

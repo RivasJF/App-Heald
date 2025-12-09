@@ -1,10 +1,10 @@
 import { Stack, Link } from 'expo-router';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { useAuth } from '../../../../src/context/AuthContext';
+import { useAuth } from '../../../../../src/context/AuthContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
-import { getProfile } from '../../../../src/services/authService';
+import { getProfile } from '../../../../../src/services/authService';
 
 export default function Perfil() {
   const { signOut } = useAuth();
@@ -57,7 +57,7 @@ export default function Perfil() {
       )}
 
       <View style={styles.menuContainer}>
-        <Link href="/(app)/(clientes)/(perfil)/configuracion" asChild>
+        <Link href="/(app)/(clientes)/perfil/configuracion" asChild>
           <TouchableOpacity style={styles.menuButton}>
             <FontAwesome name="cog" size={20} color="#4B6AA3" />
             <Text style={styles.menuButtonText}>Configuración</Text>
