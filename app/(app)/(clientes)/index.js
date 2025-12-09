@@ -1,9 +1,7 @@
-// --- NO MODIFIQUES estos imports ---
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View } from 'react-native';
 import { Stack } from 'expo-router';
 
-// --- Imports adicionales que agrego (sin cambiar los anteriores) ---
 import React, { useState, useMemo } from 'react';
 import {
   TouchableOpacity,
@@ -14,13 +12,10 @@ import {
   Dimensions,
   Animated,
 } from 'react-native';
-import { useAuth } from '../../../src/context/AuthContext'; // Import useAuth
+import { useAuth } from '../../../src/context/AuthContext';
 
-// -----------------------
-// App completa (un solo archivo)
-// -----------------------
 export default function Index() {
-  const { signOut } = useAuth(); // Get signOut from useAuth
+  const { signOut } = useAuth();
   const [screen, setScreen] = useState('bienvenida'); // bienvenida / doctor / fecha / resumen / ticket
 
   // Selecciones
