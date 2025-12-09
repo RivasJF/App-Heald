@@ -4,3 +4,5 @@
  Poder poner una distancia en clinicas segun ubicacion(cliente)
 
  Añadir opcion de actuializar datos de perfil (cliente)
+
+ Verificacion de bug de carga de geocalizacion (ciente)

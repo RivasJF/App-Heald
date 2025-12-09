@@ -136,7 +136,13 @@ export default function FechaScreen() {
           ) : timeSlots.length > 0 ? (
             <View style={styles.timeGrid}>
               {timeSlots.map((slot) => {
-                const displayTime = new Date(slot.start).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+                // Quitamos la 'Z' para tratar la hora como local y no UTC
+                const localDate = new Date(slot.start.slice(0, -1)); 
+                const displayTime = localDate.toLocaleTimeString('es-MX', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  hour12: true,
+                });
                 const chosen = selectedSlot?.start === slot.start;
                 return (
                   <TouchableOpacity

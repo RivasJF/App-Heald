@@ -27,8 +27,16 @@ export default function CitaDetalle() {
   const fecha = new Date(cita.startTime).toLocaleDateString('es-ES', {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
   });
-  const horaInicio = new Date(cita.startTime).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-  const horaFin = new Date(cita.endTime).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+  const horaInicio = new Date(cita.startTime.slice(0, -1)).toLocaleTimeString('es-MX', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+  });
+  const horaFin = new Date(cita.endTime.slice(0, -1)).toLocaleTimeString('es-MX', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+  });
 
   const doctorName = cita.doctor.user?.name || 'Doctor';
 

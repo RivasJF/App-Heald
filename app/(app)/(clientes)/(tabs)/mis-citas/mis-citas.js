@@ -43,8 +43,10 @@ export default function MisCitas() {
     const fecha = new Date(item.startTime).toLocaleDateString('es-ES', {
       weekday: 'long', day: 'numeric', month: 'long'
     });
-    const hora = new Date(item.startTime).toLocaleTimeString('es-ES', {
-      hour: '2-digit', minute: '2-digit'
+    const hora = new Date(item.startTime.slice(0, -1)).toLocaleTimeString('es-MX', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
     });
 
     // Accedemos al nombre del doctor desde el objeto anidado 'user'
