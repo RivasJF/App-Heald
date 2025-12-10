@@ -71,7 +71,7 @@ export default function ResumenScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <Stack.Screen options={{ title: 'Resumen de la cita', headerShown: true }} />
+      <Stack.Screen options={{ title: 'Resumen de la cita', headerShown: false }} />
 
       <View style={styles.headerRow}>
         <TouchableOpacity onPress={() => router.back()}>

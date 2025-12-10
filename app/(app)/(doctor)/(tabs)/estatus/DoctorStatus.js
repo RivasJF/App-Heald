@@ -4,8 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../../../../src/context/AuthContext';
 import { FontAwesome } from '@expo/vector-icons';
 import { useState, useEffect } from 'react';
-import { getDoctorByUserId, updateDoctorStatus } from '../../../../../src/services/doctorService';
-import { setDailyClosure } from '../../../../../src/services/statusService';
+import { getDoctorByUserId, updateDoctorStatus, setDailyClosure } from '../../../../../src/services/doctorService';
+import { setDayOff } from '../../../../../src/services/statusService';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 export default function DoctorStatusScreen() {
@@ -14,6 +14,7 @@ export default function DoctorStatusScreen() {
   const [isActive, setIsActive] = useState(false);
   const [doctorProfile, setDoctorProfile] = useState(null);
   const [isEmergencyPickerVisible, setIsEmergencyPickerVisible] = useState(false);
+  const [isDayOffPickerVisible, setIsDayOffPickerVisible] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
 
   // Cargar el perfil del doctor para obtener el estado inicial
@@ -62,6 +63,33 @@ export default function DoctorStatusScreen() {
       Alert.alert("Error", errorMessage);
     } finally {
       setIsClosing(false);
+    }
+  };
+
+  const onDayOffChange = async (event, selectedDate) => {
+    setIsDayOffPickerVisible(Platform.OS === 'ios');
+    if (event.type === 'set' && selectedDate) {
+      if (!doctorProfile?.id) {
+        Alert.alert("Error", "No se pudo identificar al doctor.");
+        return;
+      }
+      // Formatear la fecha manualmente para evitar problemas de zona horaria.
+      const year = selectedDate.getFullYear();
+      const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+      const day = String(selectedDate.getDate()).padStart(2, '0');
+      
+      const date = `${year}-${month}-${day}`; // Formato YYYY-MM-DD
+
+      try {
+        await setDayOff(doctorProfile.id, { date });
+        Alert.alert(
+          "Día Libre Confirmado",
+          `El día ${date} ha sido marcado como no laborable. Todas las citas para esta fecha serán canceladas.`
+        );
+      } catch (error) {
+        const errorMessage = error?.message || "No se pudo marcar el día libre.";
+        Alert.alert("Error", errorMessage);
+      }
     }
   };
 
@@ -151,6 +179,15 @@ export default function DoctorStatusScreen() {
           ))}
         </View>
 
+        {/* Botón para marcar día libre */}
+        <TouchableOpacity
+          style={styles.dayOffButton}
+          onPress={() => setIsDayOffPickerVisible(true)}
+        >
+          <FontAwesome name="calendar-times-o" size={20} color="#3F51B5" />
+          <Text style={styles.dayOffButtonText}>Marcar Día No Laborable</Text>
+        </TouchableOpacity>
+
         {/* 3. Acciones de Emergencia */}
         <TouchableOpacity style={[styles.emergencyButton, isClosing && styles.disabledButton]} onPress={handleEmergencyClose} disabled={isClosing}>
           <FontAwesome name="warning" size={20} color="#FFFFFF" />
@@ -164,6 +201,15 @@ export default function DoctorStatusScreen() {
             is24Hour={true}
             display="default"
             onChange={onEmergencyTimeChange}
+          />
+        )}
+
+        {isDayOffPickerVisible && (
+          <DateTimePicker
+            value={new Date()}
+            mode="date"
+            display="default"
+            onChange={onDayOffChange}
           />
         )}
       </ScrollView>
@@ -233,5 +279,22 @@ const styles = StyleSheet.create({
   },
   disabledButton: {
     opacity: 0.7,
+  },
+  dayOffButton: {
+    marginTop: 20,
+    backgroundColor: '#E8EAF6',
+    padding: 15,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    borderWidth: 1,
+    borderColor: '#C5CAE9',
+  },
+  dayOffButtonText: {
+    color: '#3F51B5',
+    fontWeight: '700',
+    fontSize: 16,
+    marginLeft: 10,
   },
 });

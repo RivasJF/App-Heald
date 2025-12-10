@@ -50,7 +50,7 @@ export default function TicketScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <Stack.Screen options={{ title: 'Ticket', headerShown: true }} />
+      <Stack.Screen options={{ title: 'Ticket', headerShown: false }} />
 
       <View style={styles.headerRow}>
         <TouchableOpacity onPress={handleFinish}>

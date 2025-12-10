@@ -86,7 +86,7 @@ export default function SelectLocationScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Stack.Screen options={{ title: 'Selecciona Ubicación', headerShown: true }} />
+      <Stack.Screen options={{ title: 'Selecciona Ubicación', headerShown: false }} />
       <MapView
         style={styles.map}
         initialRegion={{

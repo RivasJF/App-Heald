@@ -79,7 +79,7 @@ export default function FechaScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <Stack.Screen options={{ title: 'Seleccionar fecha y hora', headerShown: true }} />
+      <Stack.Screen options={{ title: 'Seleccionar fecha y hora', headerShown: false }} />
       
       <View style={styles.headerRow}>
         <TouchableOpacity onPress={() => router.back()}>

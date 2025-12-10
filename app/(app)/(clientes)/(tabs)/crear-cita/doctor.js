@@ -132,7 +132,7 @@ export default function DoctorScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <Stack.Screen options={{ title: 'Selecciona un doctor', headerShown: true }} />
+      <Stack.Screen options={{ title: 'Selecciona un doctor', headerShown: false }} />
 
       <View style={[styles.headerRow, { marginBottom: 10 }]}>
         <Text style={styles.sectionTitle}>Doctores disponibles</Text>

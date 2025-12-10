@@ -36,3 +36,20 @@ export const setDailyClosure = async (doctorId, closureDto) => {
     throw error.response ? error.response.data : error;
   }
 };
+
+/**
+ * Establece un día libre para un doctor. (POST /doctor-status/:doctorId/day-off)
+ * @param {string} doctorId - El ID del doctor.
+ * @param {object} dayOffDto - El DTO con la información del día libre.
+ * @param {string} dayOffDto.date - La fecha del día libre en formato 'YYYY-MM-DD'.
+ * @returns {Promise<object>} La respuesta del servidor.
+ */
+export const setDayOff = async (doctorId, dayOffDto) => {
+  try {
+    const response = await api.post(`${DOCTOR_BASE_PATH}/${doctorId}/day-off`, dayOffDto);
+    return response.data;
+  } catch (error) {
+    console.error(`Error al establecer el día libre para el doctor ${doctorId}:`, error.response ? error.response.data : error);
+    throw error.response ? error.response.data : error;
+  }
+};

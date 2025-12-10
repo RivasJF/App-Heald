@@ -56,16 +56,6 @@ export default function Perfil() {
         </View>
       )}
 
-      <View style={styles.menuContainer}>
-        <Link href="/(app)/(clientes)/perfil/configuracion" asChild>
-          <TouchableOpacity style={styles.menuButton}>
-            <FontAwesome name="cog" size={20} color="#4B6AA3" />
-            <Text style={styles.menuButtonText}>Configuración</Text>
-            <FontAwesome name="angle-right" size={24} color="#4B6AA3" />
-          </TouchableOpacity>
-        </Link>
-      </View>
-
       <TouchableOpacity style={styles.logoutButton} onPress={signOut}>
         <Text style={styles.logoutButtonText}>Cerrar sesión</Text>
       </TouchableOpacity>

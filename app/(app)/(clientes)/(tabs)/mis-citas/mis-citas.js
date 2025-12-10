@@ -1,7 +1,7 @@
 import { Stack, useRouter, useFocusEffect } from 'expo-router';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useAuth } from '../../../../../src/context/AuthContext';
 import { findByPatient } from '../../../../../src/services/appointmentService';
 import { FontAwesome } from '@expo/vector-icons';
@@ -12,6 +12,7 @@ export default function MisCitas() {
   const [citas, setCitas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [filter, setFilter] = useState('proximas'); // 'proximas' o 'pasadas'
 
   const fetchCitas = useCallback(async () => {
       if (!user?.id) {
@@ -38,6 +39,14 @@ export default function MisCitas() {
       fetchCitas();
     }, [fetchCitas])
   );
+
+  const filteredCitas = useMemo(() => {
+    const now = new Date();
+    if (filter === 'proximas') {
+      return citas.filter(cita => new Date(cita.startTime) >= now);
+    }
+    return citas.filter(cita => new Date(cita.startTime) < now);
+  }, [citas, filter]);
 
   const renderItem = ({ item }) => {
     const fecha = new Date(item.startTime).toLocaleDateString('es-ES', {
@@ -84,13 +93,28 @@ export default function MisCitas() {
         </TouchableOpacity>
       </View>
 
+      <View style={styles.filterContainer}>
+        <TouchableOpacity
+          style={[styles.filterButton, filter === 'proximas' && styles.filterButtonActive]}
+          onPress={() => setFilter('proximas')}
+        >
+          <Text style={[styles.filterText, filter === 'proximas' && styles.filterTextActive]}>Próximas</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.filterButton, filter === 'pasadas' && styles.filterButtonActive]}
+          onPress={() => setFilter('pasadas')}
+        >
+          <Text style={[styles.filterText, filter === 'pasadas' && styles.filterTextActive]}>Pasadas</Text>
+        </TouchableOpacity>
+      </View>
+
       {loading ? (
         <ActivityIndicator size="large" color="#0B4EF2" style={{ marginTop: 30 }} />
       ) : error ? (
         <Text style={styles.errorText}>{error}</Text>
       ) : (
         <FlatList
-          data={citas}
+          data={filteredCitas}
           renderItem={renderItem}
           keyExtractor={(item) => item.id}
           onRefresh={fetchCitas} // Permite "pull-to-refresh"
@@ -123,6 +147,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 10,
   },
+  filterContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#EAF1FF',
+    borderRadius: 10,
+    padding: 4,
+    marginBottom: 10,
+  },
+  filterButton: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  filterButtonActive: {
+    backgroundColor: '#FFFFFF',
+    elevation: 2,
+    shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4
+  },
+  filterText: { color: '#0B4EF2', fontWeight: '600' },
+  filterTextActive: { color: '#0B4EF2', fontWeight: '800' },
   card: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
