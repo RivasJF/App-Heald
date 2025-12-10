@@ -11,7 +11,7 @@
     "delsql": "node ./src/scripts/deleteUsers.js"
   },
   "dependencies": {
-    "@react-native-community/datetimepicker": "8.4.4",
+    "@react-native-community/datetimepicker": "^8.4.4",
     "axios": "^1.13.2",
     "dotenv": "^17.2.3",
     "expo": "~54.0.20",

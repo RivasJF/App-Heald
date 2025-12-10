@@ -17,7 +17,7 @@ export default function FechaScreen() {
   const dates = useMemo(() => {
     const list = [];
     const today = new Date();
-    for (let i = 1; i <= 7; i++) { // Mostrar solo los próximos 7 días
+    for (let i = 0; i < 7; i++) { // Corregido: Mostrar 7 días comenzando desde hoy (i=0)
       const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() + i);
       const yyyy = d.getFullYear();
       const mm = String(d.getMonth() + 1).padStart(2, '0');

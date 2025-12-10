@@ -17,3 +17,22 @@ export const updateDoctorStatus = async (doctorId, active) => {
     throw error.response ? error.response.data : error;
   }
 };
+
+
+/**
+ * Establece un cierre diario para un doctor a partir de una hora específica. (POST /doctor/:doctorId/daily-closure)
+ * @param {string} doctorId - El ID del doctor.
+ * @param {object} closureDto - El DTO con la información del cierre.
+ * @param {string} closureDto.date - La fecha del cierre en formato 'YYYY-MM-DD'.
+ * @param {string} closureDto.closedAt - La hora del cierre en formato 'HH:mm'.
+ * @returns {Promise<object>} La respuesta del servidor.
+ */
+export const setDailyClosure = async (doctorId, closureDto) => {
+  try {
+    const response = await api.post(`${DOCTOR_BASE_PATH}/${doctorId}/daily-closure`, closureDto);
+    return response.data;
+  } catch (error) {
+    console.error(`Error al establecer el cierre diario para el doctor ${doctorId}:`, error.response ? error.response.data : error);
+    throw error.response ? error.response.data : error;
+  }
+};

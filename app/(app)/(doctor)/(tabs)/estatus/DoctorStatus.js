@@ -1,17 +1,20 @@
 import { Stack, Link, useRouter } from 'expo-router';
-import { View, Text, StyleSheet, TouchableOpacity, Switch, Alert, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Switch, Alert, ScrollView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../../../../src/context/AuthContext';
 import { FontAwesome } from '@expo/vector-icons';
 import { useState, useEffect } from 'react';
-import { getDoctorByUserId } from '../../../../../src/services/doctorService';
-import { updateDoctorStatus } from '../../../../../src/services/statusService';
+import { getDoctorByUserId, updateDoctorStatus } from '../../../../../src/services/doctorService';
+import { setDailyClosure } from '../../../../../src/services/statusService';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 export default function DoctorStatusScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const [isActive, setIsActive] = useState(false);
   const [doctorProfile, setDoctorProfile] = useState(null);
+  const [isEmergencyPickerVisible, setIsEmergencyPickerVisible] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
 
   // Cargar el perfil del doctor para obtener el estado inicial
   useEffect(() => {
@@ -37,16 +40,58 @@ export default function DoctorStatusScreen() {
     }
   };
 
+  const triggerDailyClosure = async (closureTime) => {
+    if (!doctorProfile?.id) {
+      Alert.alert("Error", "No se pudo identificar al doctor.");
+      return;
+    }
+    setIsClosing(true);
+    try {
+      const today = new Date();
+      const closureDto = {
+        date: today.toISOString().split('T')[0], // Formato YYYY-MM-DD
+        closedAt: closureTime, // Formato HH:mm
+      };
+      await setDailyClosure(doctorProfile.id, closureDto);
+      Alert.alert(
+        "Cierre Confirmado",
+        `El consultorio se cerrará a partir de las ${closureTime}. Se cancelarán las citas restantes.`
+      );
+    } catch (error) {
+      const errorMessage = error?.message || "No se pudo programar el cierre. Inténtalo de nuevo.";
+      Alert.alert("Error", errorMessage);
+    } finally {
+      setIsClosing(false);
+    }
+  };
+
+  const onEmergencyTimeChange = (event, selectedDate) => {
+    setIsEmergencyPickerVisible(Platform.OS === 'ios'); // En iOS el picker es un modal
+    if (event.type === 'set' && selectedDate) {
+      const formattedTime = selectedDate.toTimeString().substring(0, 5); // Formato HH:mm
+      triggerDailyClosure(formattedTime);
+    }
+  };
+
   const handleEmergencyClose = () => {
     Alert.alert(
       "Confirmar Cierre de Emergencia",
-      "¿Estás seguro de que quieres cancelar todas tus citas por el resto del día?",
+      "¿A partir de qué momento deseas cerrar el consultorio por hoy?",
       [
-        { text: "No", style: "cancel" },
-        { text: "Sí, cerrar ahora", style: "destructive", onPress: () => {
-          // Aquí iría la lógica para llamar a un endpoint de cierre de emergencia
-          Alert.alert("Consultorio Cerrado", "Tus citas de hoy han sido canceladas.");
-        }}
+        {
+          text: "Cerrar ahora mismo",
+          style: "destructive",
+          onPress: () => {
+            const now = new Date();
+            const currentTime = now.toTimeString().substring(0, 5); // Formato HH:mm
+            triggerDailyClosure(currentTime);
+          }
+        },
+        {
+          text: "Elegir hora de cierre",
+          onPress: () => setIsEmergencyPickerVisible(true)
+        },
+        { text: "Cancelar", style: "cancel" }
       ]
     );
   };
@@ -107,10 +152,20 @@ export default function DoctorStatusScreen() {
         </View>
 
         {/* 3. Acciones de Emergencia */}
-        <TouchableOpacity style={styles.emergencyButton} onPress={handleEmergencyClose}>
+        <TouchableOpacity style={[styles.emergencyButton, isClosing && styles.disabledButton]} onPress={handleEmergencyClose} disabled={isClosing}>
           <FontAwesome name="warning" size={20} color="#FFFFFF" />
           <Text style={styles.emergencyButtonText}>Cerrar por Emergencia Hoy</Text>
         </TouchableOpacity>
+
+        {isEmergencyPickerVisible && (
+          <DateTimePicker
+            value={new Date()}
+            mode="time"
+            is24Hour={true}
+            display="default"
+            onChange={onEmergencyTimeChange}
+          />
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -175,5 +230,8 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 16,
     marginLeft: 10,
+  },
+  disabledButton: {
+    opacity: 0.7,
   },
 });
