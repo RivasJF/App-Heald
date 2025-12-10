@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../../../../src/context/AuthContext';
 import { getDoctorByUserId } from '../../../../../src/services/doctorService';
-import { getClinicByDoctorId, updateClinic } from '../../../../../src/services/clinicService';
+import { getClinicByDoctorId } from '../../../../../src/services/clinicService';
 import { FontAwesome } from '@expo/vector-icons';
 
 export default function Consultorio() {
