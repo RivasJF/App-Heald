@@ -2,7 +2,7 @@ import { Stack, useRouter } from 'expo-router';
 import MapView, { Marker } from "react-native-maps";
 import * as Location from "expo-location";
 import { useEffect, useState, useContext } from "react";
-import { View, StyleSheet, Text, ActivityIndicator, TouchableOpacity, Alert } from "react-native";
+import { View, StyleSheet, Text, ActivityIndicator, TouchableOpacity, Alert, Pressable } from "react-native";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CitaContext } from './+context/CitaContext';
 
@@ -39,22 +39,55 @@ export default function SelectLocationScreen() {
   useEffect(() => {
     (async () => {
       setIsLoading(true);
-      // Ahora solo verificamos el permiso, no lo solicitamos.
-      const { status } = await Location.getForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert(
-          "Permiso Requerido", 
-          "No se puede acceder a la ubicación. Por favor, habilita el permiso en la configuración de tu dispositivo para continuar."
+      try {
+        // Primero solicitar permiso
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          setAddress("Permiso de ubicación denegado");
+          // Usar una ubicación por defecto (ej: centro de una ciudad)
+          const defaultLocation = {
+            latitude: 40.7128,
+            longitude: -74.0060,
+          };
+          setLocation(defaultLocation);
+          setIsLoading(false);
+          return;
+        }
+
+        // Intentar obtener la ubicación con timeout
+        const locationPromise = Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+        });
+
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Timeout')), 10000)
         );
+
+        try {
+          const loc = await Promise.race([locationPromise, timeoutPromise]);
+          const initialCoords = loc.coords;
+          setLocation(initialCoords);
+          await fetchAddress(initialCoords);
+        } catch (timeoutError) {
+          console.warn("Timeout obteniendo ubicación, usando ubicación por defecto");
+          const defaultLocation = {
+            latitude: 40.7128,
+            longitude: -74.0060,
+          };
+          setLocation(defaultLocation);
+          setAddress("Ubicación por defecto");
+        }
+      } catch (error) {
+        console.error("Error al obtener permisos:", error);
+        const defaultLocation = {
+          latitude: 40.7128,
+          longitude: -74.0060,
+        };
+        setLocation(defaultLocation);
+        setAddress("Ubicación por defecto");
+      } finally {
         setIsLoading(false);
-        router.back(); // Enviamos al usuario de vuelta si no hay permiso.
-        return; 
       }
-      const loc = await Location.getCurrentPositionAsync({});
-      const initialCoords = loc.coords;
-      setLocation(initialCoords);
-      await fetchAddress(initialCoords);
-      setIsLoading(false);
     })();
   }, []);
 
@@ -65,7 +98,31 @@ export default function SelectLocationScreen() {
     fetchAddress(newCoords);
   };
 
-  // 4. Manejador para guardar y continuar
+  // 4. Manejador para actualizar ubicación actual
+  const handleRefreshLocation = async () => {
+    setIsLoading(true);
+    try {
+      const locationPromise = Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Timeout')), 10000)
+      );
+      
+      try {
+        const loc = await Promise.race([locationPromise, timeoutPromise]);
+        const coords = loc.coords;
+        setLocation(coords);
+        await fetchAddress(coords);
+      } catch (error) {
+        Alert.alert('Error', 'No se pudo obtener la ubicación. Intenta nuevamente.');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // 5. Manejador para guardar y continuar
   const handleConfirmLocation = () => {
     if (location) {
       // Guardar en el contexto
@@ -75,11 +132,27 @@ export default function SelectLocationScreen() {
     }
   };
 
-  if (isLoading || !location) {
+  if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#0B4EF2" />
         <Text style={{ marginTop: 10, color: '#072B66' }}>Cargando mapa y ubicación...</Text>
+      </View>
+    );
+  }
+
+  if (!location) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={{ marginBottom: 20, color: '#072B66', fontSize: 16 }}>
+          No se pudo obtener la ubicación
+        </Text>
+        <Pressable 
+          style={styles.continueButton}
+          onPress={handleConfirmLocation}
+        >
+          <Text style={styles.continueButtonText}>Continuar sin ubicación</Text>
+        </Pressable>
       </View>
     );
   }
@@ -113,9 +186,14 @@ export default function SelectLocationScreen() {
       <View style={styles.infoPanel}>
         <Text style={styles.addressText}>📍 {address}</Text>
         <Text style={styles.coordsText}>Lat: {location.latitude.toFixed(5)}, Lng: {location.longitude.toFixed(5)}</Text>
-        <TouchableOpacity style={styles.saveButton} onPress={handleConfirmLocation}>
-          <Text style={styles.saveButtonText}>Confirmar Ubicación</Text>
-        </TouchableOpacity>
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity style={styles.refreshButton} onPress={handleRefreshLocation} disabled={isLoading}>
+            <Text style={styles.refreshButtonText}>{isLoading ? '🔄 Actualizando...' : '🔄 Actualizar'}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.saveButton} onPress={handleConfirmLocation}>
+            <Text style={styles.saveButtonText}>Confirmar Ubicación</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -154,6 +232,24 @@ const styles = StyleSheet.create({
     color: '#6B82B1',
     marginBottom: 16,
   },
+  buttonContainer: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 12,
+  },
+  refreshButton: {
+    flex: 1,
+    backgroundColor: '#6B82B1',
+    padding: 15,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  refreshButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
   saveButton: {
     backgroundColor: '#0B4EF2',
     padding: 15,
@@ -161,6 +257,18 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
   },
   saveButtonText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  continueButton: {
+    backgroundColor: '#0B4EF2',
+    padding: 15,
+    borderRadius: 12,
+    alignSelf: 'stretch',
+  },
+  continueButtonText: {
     color: 'white',
     fontSize: 18,
     fontWeight: 'bold',

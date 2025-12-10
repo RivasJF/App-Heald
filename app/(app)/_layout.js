@@ -9,12 +9,15 @@ export default function RootLayout() {
 
   useEffect(() => {
     const requestLocationPermission = async () => {
-      const { status } = await Location.requestForegroundPermissionsAsync();
+      let { status } = await Location.getForegroundPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert(
-          "Permiso de Ubicación",
-          "La aplicación necesita acceso a tu ubicación para funcionar correctamente. Por favor, habilítalo en la configuración."
-        );
+        let { status: newStatus } = await Location.requestForegroundPermissionsAsync();
+        if (newStatus !== 'granted') {
+          Alert.alert(
+            "Permiso de Ubicación Requerido",
+            "La aplicación necesita acceso a tu ubicación para funcionar correctamente. Por favor, habilítalo en la configuración del dispositivo."
+          );
+        }
       }
     };
 
