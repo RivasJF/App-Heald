@@ -1,22 +1,21 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { useState, useEffect } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../../../../src/context/AuthContext';
 import { getDoctorByUserId } from '../../../../../src/services/doctorService';
-import { getClinicByDoctorId } from '../../../../../src/services/clinicService';
+import { getClinicByDoctorId, updateClinic } from '../../../../../src/services/clinicService';
 import { FontAwesome } from '@expo/vector-icons';
 
 export default function Consultorio() {
   const router = useRouter();
   const { user } = useAuth();
 
-  const [address, setAddress] = useState('');
-  const [latitude, setLatitude] = useState('');
-  const [longitude, setLongitude] = useState('');
-
+  const [clinic, setClinic] = useState(null);
+  const [doctorProfile, setDoctorProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [clinicExists, setClinicExists] = useState(true);
 
   useEffect(() => {
     if (user?.id) {
@@ -26,19 +25,22 @@ export default function Consultorio() {
           if (!doctorProfile?.id) {
             throw new Error("Perfil de doctor no encontrado.");
           }
+          setDoctorProfile(doctorProfile);
           return getClinicByDoctorId(doctorProfile.id);
         })
         .then(clinicData => {
-          if (clinicData) {
-            setAddress(clinicData.address);
-            setLatitude(String(clinicData.latitude));
-            setLongitude(String(clinicData.longitude));
-          }
+          setClinic(clinicData);
+          setClinicExists(true);
           setError(null);
         })
         .catch(err => {
-          console.error("Error al cargar datos del consultorio:", err);
-          setError("No se pudieron cargar los datos del consultorio.");
+          if (err?.statusCode === 404) {
+            setClinicExists(false);
+            setError(null);
+          } else {
+            console.error("Error al cargar datos del consultorio:", err);
+            setError("No se pudieron cargar los datos del consultorio.");
+          }
         })
         .finally(() => setLoading(false));
     }
@@ -66,10 +68,33 @@ export default function Consultorio() {
 
         {error && <Text style={styles.errorText}>{error}</Text>}
 
-        <View style={styles.infoCard}>
-          <InfoRow icon="map-marker" label="Dirección Completa" value={address} />
-          <InfoRow icon="compass" label="Coordenadas (Lat, Lng)" value={latitude && longitude ? `${latitude}, ${longitude}` : 'No disponible'} />
-        </View>
+        {clinicExists ? (
+          <>
+            <View style={styles.infoCard}>
+              <InfoRow icon="map-marker" label="Dirección Completa" value={clinic?.address} />
+              <InfoRow icon="compass" label="Coordenadas (Lat, Lng)" value={clinic ? `${clinic.latitude}, ${clinic.longitude}` : 'No disponible'} />
+            </View>
+            <TouchableOpacity
+              style={styles.editButton}
+              onPress={() => router.push({
+                pathname: '/(app)/(doctor)/estatus/ubicacion-consultorio',
+                params: { clinic: JSON.stringify(clinic) }
+              })}
+            >
+              <Text style={styles.editButtonText}>Actualizar Ubicación</Text>
+            </TouchableOpacity>
+          </>
+        ) : (
+          <View style={styles.noClinicContainer}>
+            <Text style={styles.noClinicText}>Aún no has registrado un consultorio.</Text>
+            <TouchableOpacity
+              style={styles.createButton}
+              onPress={() => router.push({ pathname: '/(app)/(doctor)/crear-consultorio', params: { doctorId: doctorProfile.id } })}
+            >
+              <Text style={styles.createButtonText}>Registrar Mi Consultorio</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -116,5 +141,45 @@ const styles = StyleSheet.create({
     color: '#D32F2F',
     marginBottom: 15,
     fontSize: 15,
+  },
+  noClinicContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 30,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    marginTop: 20,
+  },
+  noClinicText: {
+    fontSize: 16,
+    color: '#6B82B1',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  createButton: {
+    backgroundColor: '#3F51B5',
+    paddingVertical: 12,
+    paddingHorizontal: 25,
+    borderRadius: 10,
+  },
+  createButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  editButton: {
+    marginTop: 20,
+    backgroundColor: '#fff',
+    paddingVertical: 12,
+    paddingHorizontal: 25,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#3F51B5',
+  },
+  editButtonText: {
+    color: '#3F51B5',
+    fontSize: 16,
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
 });
