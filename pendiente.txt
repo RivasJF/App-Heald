@@ -1,8 +1,13 @@
 
  Quitar citas fuera de tiempo actual (cliente)
 
- Poder poner una distancia en clinicas segun ubicacion(cliente)
+        Poder poner una distancia en clinicas segun ubicacion(cliente)
 
- Añadir opcion de actuializar datos de perfil (cliente)
+        Añadir opcion de actuializar datos de perfil (cliente)
 
  Verificacion de bug de carga de geocalizacion (ciente)
+
+
+ poder quitar cierre antes de tiempo (doctor)
+
+ poder quitar dia no laboral (doctor)
