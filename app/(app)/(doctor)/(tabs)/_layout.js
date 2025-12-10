@@ -5,13 +5,6 @@ export default function DoctorLayout() {
   return (
     <Tabs screenOptions={{ headerShown: false }}>
       <Tabs.Screen
-        name="hoy"
-        options={{
-          title: "Hoy",
-          tabBarIcon: ({ color, size }) => <FontAwesome name="calendar-check-o" size={size} color={color} />,
-        }}
-      />
-      <Tabs.Screen
         name="perfil"
         options={{
           title: "Perfil",
@@ -19,10 +12,17 @@ export default function DoctorLayout() {
         }}
       />
       <Tabs.Screen
-        name="agenda"
+        name="estatus"
+        options={{
+          title: "Estatus",
+          tabBarIcon: ({ color, size }) => <FontAwesome name="tachometer" size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="mis-citas"
         options={{
           title: "Agenda",
-          tabBarIcon: ({ color, size }) => <FontAwesome name="calendar" size={size} color={color} />,
+          tabBarIcon: ({ color, size }) => <FontAwesome name="list-alt" size={size} color={color} />,
         }}
       />
     </Tabs>
