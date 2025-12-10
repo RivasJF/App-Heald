@@ -20,3 +20,18 @@ export const getNearbyClinics = async (body) => {
     throw error.response ? error.response.data : error;
   }
 };
+
+/**
+ * Obtiene la clínica de un doctor por el ID del doctor. (GET /clinic/:doctorId)
+ * @param {string} doctorId - El ID del doctor.
+ * @returns {Promise<object>} La clínica encontrada.
+ */
+export const getClinicByDoctorId = async (doctorId) => {
+  try {
+    const response = await api.get(`${CLINIC_BASE_PATH}/${doctorId}`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error al obtener la clínica para el doctor ${doctorId}:`, error.response ? error.response.data : error);
+    throw error.response ? error.response.data : error;
+  }
+};

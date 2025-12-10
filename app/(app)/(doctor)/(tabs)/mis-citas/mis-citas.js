@@ -69,7 +69,14 @@ export default function DoctorAppointmentsScreen() {
     const patientName = item.patient?.name || 'Paciente no asignado';
 
     return (
-      <TouchableOpacity style={styles.card} activeOpacity={0.8}>
+      <TouchableOpacity
+        style={styles.card}
+        activeOpacity={0.8}
+        onPress={() => router.push({
+          pathname: `/(app)/(doctor)/(tabs)/mis-citas/${item.id}`,
+          params: { cita: JSON.stringify(item) }
+        })}
+      >
         <View style={styles.cardIcon}>
           <FontAwesome name="user-o" size={24} color="#3F51B5" />
         </View>
