@@ -34,3 +34,23 @@ export const updateSchedule = async (doctorId, updateDto) => {
     throw error.response ? error.response.data : error;
   }
 };
+
+/**
+ * Crea un nuevo horario para un doctor. (POST /schedule/:id)
+ * @param {string} doctorId - El ID del doctor.
+ * @param {object} createScheduleDto - El objeto con los datos del horario a crear.
+ * @param {number} createScheduleDto.consultationTime - Duración de la consulta en minutos.
+ * @param {Array<object>} createScheduleDto.days - Lista de días laborables.
+ * @param {Array<object>} createScheduleDto.breaks - Lista de descansos.
+ * @returns {Promise<object>} El horario creado.
+ */
+export const createSchedule = async (doctorId, createScheduleDto) => {
+  try {
+    const response = await api.post(`${SCHEDULE_BASE_PATH}/${doctorId}`, createScheduleDto);
+    return response.data;
+  } catch (error)
+ {
+    console.error(`Error al crear el horario para el doctor ${doctorId}:`, error.response ? error.response.data : error);
+    throw error.response ? error.response.data : error;
+  }
+};

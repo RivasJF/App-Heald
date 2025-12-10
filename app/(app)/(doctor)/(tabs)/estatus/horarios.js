@@ -1,8 +1,8 @@
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView, Alert, Switch, Platform } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView, Alert, Switch, Platform, TextInput } from "react-native";
 import { Stack, useRouter } from "expo-router";
 import { useState, useEffect } from "react";
 import { useAuth } from "../../../../../src/context/AuthContext";
-import { getScheduleByUserId, updateSchedule } from "../../../../../src/services/scheduleService";
+import { getScheduleByUserId, updateSchedule, createSchedule } from "../../../../../src/services/scheduleService";
 import { getDoctorByUserId } from "../../../../../src/services/doctorService";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { FontAwesome } from "@expo/vector-icons";
@@ -69,6 +69,8 @@ export default function Horarios() {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState(null);
 
+  const [consultationTime, setConsultationTime] = useState('30');
+  const [scheduleExists, setScheduleExists] = useState(true); // Para saber si crear o actualizar
   // Estado para el selector de hora
   const [pickerVisible, setPickerVisible] = useState(false);
   const [timeBeingEdited, setTimeBeingEdited] = useState({ day: null, type: null });
@@ -102,12 +104,21 @@ export default function Horarios() {
             });
             // Aquí se podrían procesar los breaks de manera similar
             setScheduleConfig(newConfig);
+            setConsultationTime(String(schedule.consultationTime));
+            setScheduleExists(true);
           }
           setError(null);
         })
         .catch(err => {
-          console.error("Error al cargar el horario:", err);
-          setError("No se pudo cargar el horario.");
+          // Si el horario no se encuentra (404), preparamos la UI para crear uno nuevo.
+          if (err?.statusCode === 404) {
+            setScheduleExists(false);
+            setConsultationTime('30'); // Valor por defecto al crear
+            setError(null); // No es un error, es un flujo normal.
+          } else {
+            console.error("Error al cargar el horario:", err);
+            setError("No se pudo cargar el horario.");
+          }
         })
         .finally(() => setLoading(false));
     }
@@ -156,7 +167,8 @@ export default function Horarios() {
     }
     setIsSaving(true);
 
-    const updateDto = {
+    const scheduleDto = {
+      consultationTime: parseInt(consultationTime, 10) || 30,
       days: [],
       breaks: [],
     };
@@ -165,12 +177,12 @@ export default function Horarios() {
       const config = scheduleConfig[dayName];
       if (config.active) {
         const apiDay = FULL_NAME_TO_API_DAY[dayName];
-        updateDto.days.push({
+        scheduleDto.days.push({
           day: apiDay,
           startTime: config.startTime,
           endTime: config.endTime,
         });
-        updateDto.breaks.push({
+        scheduleDto.breaks.push({
           day: apiDay,
           startTime: config.breakStartTime,
           endTime: config.breakEndTime,
@@ -179,7 +191,16 @@ export default function Horarios() {
     }
 
     try {
-      await updateSchedule(doctorProfile.id, updateDto);
+      if (scheduleExists) {
+        // Si el horario ya existe, lo actualizamos (PATCH)
+        // Creamos una copia del DTO y eliminamos consultationTime para la actualización
+        const { consultationTime, ...updateDto } = scheduleDto;
+        await updateSchedule(doctorProfile.id, updateDto);
+      } else {
+        // Si no existe, lo creamos
+        await createSchedule(doctorProfile.id, scheduleDto);
+        setScheduleExists(true); // Después de crear, ya existe para futuras ediciones
+      }
       Alert.alert("Éxito", "Tu horario ha sido actualizado correctamente.");
     } catch (err) {
       console.error("Error al guardar el horario:", err);
@@ -210,6 +231,23 @@ export default function Horarios() {
       <View style={styles.separator} />
 
       {error && <Text style={styles.errorText}>{error}</Text>}
+
+      {/* Tiempo de Consulta */}
+      <View style={styles.card}>
+        <Text style={styles.sectionTitle}>Tiempo de Consulta (minutos)</Text>
+        {scheduleExists ? (
+          <Text style={styles.readOnlyText}>{consultationTime}</Text>
+        ) : (
+          <TextInput
+            style={styles.input}
+            value={consultationTime}
+            onChangeText={setConsultationTime}
+            keyboardType="numeric"
+            placeholder="Ej: 30"
+          />
+        )}
+      </View>
+      <View style={styles.separator} />
 
       {ALL_DAYS.map(day => {
         const config = scheduleConfig[day];
@@ -297,6 +335,20 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   separator: { height: 1, backgroundColor: '#EEEEEE', marginVertical: 25 },
+  input: {
+    backgroundColor: INACTIVE_BG_COLOR,
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    fontSize: 16,
+    color: TEXT_DARK,
+  },
+  readOnlyText: {
+    fontSize: 16,
+    color: TEXT_MUTED,
+    padding: 12,
+  },
   dayCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
