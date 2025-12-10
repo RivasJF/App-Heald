@@ -4,8 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../../../../src/context/AuthContext';
 import { FontAwesome } from '@expo/vector-icons';
 import { useState, useEffect } from 'react';
-import { getDoctorByUserId, updateDoctorStatus, setDailyClosure } from '../../../../../src/services/doctorService';
-import { setDayOff } from '../../../../../src/services/statusService';
+import { getDoctorByUserId } from '../../../../../src/services/doctorService';
+import { updateDoctorStatus, setDailyClosure, setDayOff  } from '../../../../../src/services/statusService';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 export default function DoctorStatusScreen() {
@@ -37,7 +37,8 @@ export default function DoctorStatusScreen() {
       setIsActive(newStatus); // Actualiza la UI solo si la API responde correctamente
       Alert.alert("Estado Actualizado", `Tu servicio ahora está ${newStatus ? 'activo' : 'inactivo'}.`);
     } catch (error) {
-      Alert.alert("Error", "No se pudo actualizar el estado. Inténtalo de nuevo.");
+      const errorMessage = error?.message || "No se pudo actualizar el estado. Inténtalo de nuevo.";
+      Alert.alert("Error", errorMessage);
     }
   };
 

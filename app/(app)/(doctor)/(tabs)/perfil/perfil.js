@@ -1,4 +1,4 @@
-import { Stack, useFocusEffect } from 'expo-router';
+import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ScrollView } from 'react-native';
 import { useAuth } from '../../../../../src/context/AuthContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -7,6 +7,7 @@ import { useState, useCallback } from 'react';
 import { getDoctorByUserId } from '../../../../../src/services/doctorService';
 
 export default function DoctorProfileScreen() {
+  const router = useRouter();
   const { user, signOut } = useAuth();
   const [doctorProfile, setDoctorProfile] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -20,19 +21,34 @@ export default function DoctorProfileScreen() {
         setDoctorProfile(profileData);
         setError(null);
       } catch (e) {
-        setError('No se pudo cargar el perfil del doctor.');
-        console.error('Error fetching doctor profile:', e);
+        // Si el doctor no tiene perfil (404), lo redirigimos a la pantalla de creación.
+        if (e?.statusCode === 404) {
+          // Navegamos a la pantalla de crear perfil dentro del layout del doctor
+          router.replace('/(doctor)/crear-perfil');
+        } else {
+          setError('No se pudo cargar el perfil del doctor.');
+          console.error('Error fetching doctor profile:', e);
+        }
       } finally {
         setLoading(false);
       }
     }
-  }, [user]);
+  }, [user, router]);
 
   useFocusEffect(
     useCallback(() => {
       fetchDoctorProfile();
     }, [fetchDoctorProfile])
   );
+
+  // Muestra un loader mientras se determina si el perfil existe o no.
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F5F8FF' }}>
+        <ActivityIndicator size="large" color="#3F51B5" />
+      </View>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
