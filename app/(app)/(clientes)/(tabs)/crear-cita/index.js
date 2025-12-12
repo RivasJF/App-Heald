@@ -2,9 +2,10 @@ import { Stack, useRouter } from 'expo-router';
 import MapView, { Marker } from "react-native-maps";
 import * as Location from "expo-location";
 import { useEffect, useState, useContext } from "react";
-import { View, StyleSheet, Text, ActivityIndicator, TouchableOpacity, Alert, Pressable } from "react-native";
+import { View, StyleSheet, Text, ActivityIndicator, TouchableOpacity, Alert, Pressable, Platform, Linking } from "react-native";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CitaContext } from './+context/CitaContext';
+import Constants from 'expo-constants';
 
 // Constante para las deltas iniciales (nivel de zoom)
 const INITIAL_DELTA = 0.005;
@@ -16,6 +17,15 @@ export default function SelectLocationScreen() {
   const [location, setLocation] = useState(null); // { latitude: number, longitude: number }
   const [address, setAddress] = useState("Cargando dirección...");
   const [isLoading, setIsLoading] = useState(true);
+
+  // Detectar si estamos en una build standalone Android y si falta API key de Google Maps
+  const isStandalone = Constants.appOwnership === 'standalone';
+  const expoApiKey = (Constants.manifest && Constants.manifest.android && Constants.manifest.android.config && Constants.manifest.android.config.googleMaps && Constants.manifest.android.config.googleMaps.apiKey) ||
+    (Constants.expoConfig && Constants.expoConfig.android && Constants.expoConfig.android.config && Constants.expoConfig.android.config.googleMaps && Constants.expoConfig.android.config.googleMaps.apiKey) || null;
+
+  // Considerar cadenas placeholder como "sin clave real" para evitar intentar renderizar MapView
+  const hasRealApiKey = typeof expoApiKey === 'string' && expoApiKey.trim().length > 0 && !/put_your|replace|your_google_maps|put_your_google/i.test(expoApiKey.toLowerCase());
+  const canRenderMap = !(Platform.OS === 'android' && isStandalone && !hasRealApiKey);
 
   // 1. Función para obtener la dirección (Geocodificación Inversa)
   const fetchAddress = async (coords) => {
@@ -132,6 +142,22 @@ export default function SelectLocationScreen() {
     }
   };
 
+  const openExternalMap = async (coords) => {
+    try {
+      const { latitude, longitude } = coords || location || {};
+      if (!latitude || !longitude) return Alert.alert('Error', 'No hay coordenadas para abrir en el mapa.');
+      const geoUrl = `geo:${latitude},${longitude}?q=${latitude},${longitude}`;
+      const webUrl = `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
+      const supported = await Linking.canOpenURL(geoUrl);
+      await Linking.openURL(supported ? geoUrl : webUrl);
+    } catch (e) {
+      Alert.alert('Error', 'No se pudo abrir la aplicación de mapas.');
+    }
+  };
+
+  const [webviewLoading, setWebviewLoading] = useState(false);
+  const [webviewError, setWebviewError] = useState(false);
+
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
@@ -160,28 +186,107 @@ export default function SelectLocationScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <Stack.Screen options={{ title: 'Selecciona Ubicación', headerShown: false }} />
-      <MapView
-        style={styles.map}
-        initialRegion={{
-          latitude: location.latitude,
-          longitude: location.longitude,
-          latitudeDelta: INITIAL_DELTA,
-          longitudeDelta: INITIAL_DELTA,
-        }}
-        onPress={handleMapPress}
-        region={{
-          latitude: location.latitude,
-          longitude: location.longitude,
-          latitudeDelta: INITIAL_DELTA,
-          longitudeDelta: INITIAL_DELTA,
-        }}
-      >
-        <Marker
-          coordinate={location}
-          title="Ubicación Seleccionada"
-          description={address}
-        />
-      </MapView>
+      {canRenderMap ? (
+        <MapView
+          style={styles.map}
+          initialRegion={{
+            latitude: location.latitude,
+            longitude: location.longitude,
+            latitudeDelta: INITIAL_DELTA,
+            longitudeDelta: INITIAL_DELTA,
+          }}
+          onPress={handleMapPress}
+          region={{
+            latitude: location.latitude,
+            longitude: location.longitude,
+            latitudeDelta: INITIAL_DELTA,
+            longitudeDelta: INITIAL_DELTA,
+          }}
+        >
+          <Marker
+            coordinate={location}
+            title="Ubicación Seleccionada"
+            description={address}
+          />
+        </MapView>
+      ) : (
+        (() => {
+          // Intentar cargar WebView dinámicamente (no requerido en tiempo de compilación)
+          let WebView = null;
+          try {
+            // require dinámico para evitar errores si no está instalado
+            // eslint-disable-next-line global-require
+            WebView = require('react-native-webview').WebView;
+          } catch (e) {
+            WebView = null;
+          }
+
+          if (WebView) {
+            const osmHtml = `<!doctype html><html><head><meta name="viewport" content="initial-scale=1.0, maximum-scale=1.0"/><link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/><style>html,body,#map{height:100%;margin:0;padding:0} .leaflet-container{background:#fff}</style></head><body><div id="map"></div><script src="https://unpkg.com/leaflet/dist/leaflet.js"></script><script> (function(){try{var lat=${location.latitude}, lng=${location.longitude}; var map=L.map('map').setView([lat,lng],15); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19, attribution:'© OpenStreetMap contributors'}).addTo(map); var marker=L.marker([lat,lng],{draggable:true}).addTo(map); marker.on('dragend', function(e){ var p=e.target.getLatLng(); try{ window.ReactNativeWebView.postMessage(JSON.stringify({lat:p.lat,lng:p.lng})); }catch(err){} }); }catch(err){ console.error(err);} })();</script></body></html>`;
+
+              return (
+                <>
+                  {webviewLoading && (
+                    <View style={styles.webviewLoadingOverlay}>
+                      <ActivityIndicator size="large" color="#0B4EF2" />
+                      <Text style={{ marginTop: 8, color: '#072B66' }}>Cargando mapa...</Text>
+                    </View>
+                  )}
+                  <WebView
+                    originWhitelist={["*"]}
+                    source={{ html: osmHtml }}
+                    style={styles.map}
+                    javaScriptEnabled={true}
+                    domStorageEnabled={true}
+                    mixedContentMode={'always'}
+                    allowUniversalAccessFromFileURLs={true}
+                    allowFileAccess={true}
+                    scalesPageToFit={true}
+                    onMessage={(event) => {
+                      try {
+                        const payload = JSON.parse(event.nativeEvent.data);
+                        if (payload && payload.lat && payload.lng) {
+                          const newCoords = { latitude: payload.lat, longitude: payload.lng };
+                          setLocation(newCoords);
+                          fetchAddress(newCoords);
+                        }
+                      } catch (err) {
+                        console.warn('Invalid message from webview', err);
+                      }
+                    }}
+                    onLoadStart={() => { setWebviewLoading(true); setWebviewError(false); }}
+                    onLoadEnd={() => { setWebviewLoading(false); }}
+                    onError={(e) => { console.warn('WebView error', e); setWebviewLoading(false); setWebviewError(true); }}
+                  />
+                  {webviewError && (
+                    <View style={styles.mapPlaceholder}>
+                      <Text style={{ textAlign: 'center', color: '#072B66', marginBottom: 12 }}>No se pudo cargar el mapa embebido.</Text>
+                      <TouchableOpacity style={styles.refreshButton} onPress={() => openExternalMap(location)}>
+                        <Text style={styles.refreshButtonText}>Abrir en Maps</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={[styles.saveButton, { marginTop: 12 }]} onPress={handleConfirmLocation}>
+                        <Text style={styles.saveButtonText}>Continuar sin mapa</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </>
+              );
+          }
+
+          // Si no hay WebView, caer al comportamiento anterior (abrir Maps externo)
+          return (
+            <View style={styles.mapPlaceholder}>
+              <Text style={{ textAlign: 'center', color: '#072B66', marginBottom: 12 }}>Mapa no disponible en esta versión. Puedes abrir Google Maps externo.</Text>
+              <TouchableOpacity style={styles.refreshButton} onPress={() => openExternalMap(location)}>
+                <Text style={styles.refreshButtonText}>Abrir en Maps</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.saveButton, { marginTop: 12 }]} onPress={handleConfirmLocation}>
+                <Text style={styles.saveButtonText}>Continuar sin mapa</Text>
+              </TouchableOpacity>
+            </View>
+          );
+        })()
+      )}
 
       <View style={styles.infoPanel}>
         <Text style={styles.addressText}>📍 {address}</Text>
@@ -212,6 +317,14 @@ const styles = StyleSheet.create({
   map: {
     flex: 3,
     width: '100%',
+  },
+  mapPlaceholder: {
+    flex: 3,
+    width: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFF',
+    padding: 20,
   },
   infoPanel: {
     flex: 1,
