@@ -49,21 +49,46 @@ export default function DoctorAppointmentsScreen() {
     }, [fetchCitas])
   );
 
+  // Helper: parsear la fecha interpretando como local cuando la cadena termina con 'Z'
+  const parseLocal = (isoString) => {
+    if (!isoString) return new Date(isoString);
+    try {
+      if (typeof isoString === 'string' && isoString.endsWith('Z')) {
+        return new Date(isoString.slice(0, -1));
+      }
+      return new Date(isoString);
+    } catch (e) {
+      return new Date(isoString);
+    }
+  };
+
   const filteredCitas = useMemo(() => {
     const now = new Date();
     if (filter === 'proximas') {
-      return allCitas.filter(cita => new Date(cita.startTime) >= now);
+      return allCitas.filter(cita => {
+        const startLocal = parseLocal(cita.startTime);
+        return startLocal >= now;
+      });
     }
-    return allCitas.filter(cita => new Date(cita.startTime) < now);
+    return allCitas.filter(cita => {
+      const startLocal = parseLocal(cita.startTime);
+      return startLocal < now;
+    });
   }, [allCitas, filter]);
 
   const renderItem = ({ item }) => {
     const fecha = new Date(item.startTime).toLocaleDateString('es-ES', {
       weekday: 'long', day: 'numeric', month: 'short'
     });
-    const hora = new Date(item.startTime.slice(0, -1)).toLocaleTimeString('es-MX', {
-      hour: '2-digit', minute: '2-digit', hour12: true,
-    });
+    const hora = (function() {
+      try {
+        const s = item.startTime;
+        const parsed = (typeof s === 'string' && s.endsWith('Z')) ? new Date(s.slice(0, -1)) : new Date(s);
+        return parsed.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: true });
+      } catch (e) {
+        return new Date(item.startTime).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: true });
+      }
+    })();
 
     // Asumimos que la respuesta incluye un objeto 'patient' con el nombre.
     const patientName = item.patient?.name || 'Paciente no asignado';

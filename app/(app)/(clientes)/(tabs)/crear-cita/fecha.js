@@ -41,7 +41,36 @@ export default function FechaScreen() {
         setErrorTimes(availabilityData.message);
         setTimeSlots([]);
       } else {
-        setTimeSlots(availabilityData.available); // Guardamos el array de objetos {start, end}
+        // Parsear las fechas de los slots para trabajar con objetos Date de forma consistente
+        // Además crear una versión local (quitando la 'Z') para que el filtrado use
+        // la misma interpretación que la UI (sin cambiar el formato mostrado).
+        const parsed = availabilityData.available.map((slot) => ({
+          ...slot,
+          startDate: new Date(slot.start),
+          // startLocalDate: interpreta la cadena como hora local (igual que la UI que hace slice)
+          startLocalDate: new Date(slot.start ? slot.start.slice(0, -1) : slot.start),
+          endDate: slot.end ? new Date(slot.end) : null,
+        }));
+
+        // Filtrar horarios que ya pasaron solo si la fecha seleccionada es hoy
+        const now = new Date();
+        const isToday = (() => {
+          const d = new Date();
+          const yyyy = d.getFullYear();
+          const mm = String(d.getMonth() + 1).padStart(2, '0');
+          const dd = String(d.getDate()).padStart(2, '0');
+          return `${yyyy}-${mm}-${dd}` === date;
+        })();
+
+        const filteredSlots = parsed.filter((slot) => {
+          if (isToday) {
+            // Comparar usando la fecha interpretada como local (startLocalDate)
+            return slot.startLocalDate > now; // solo incluir si está en el futuro hoy
+          }
+          return true; // para días futuros incluir todos los horarios
+        });
+
+        setTimeSlots(filteredSlots);
       }
     } catch (err) {
       // Si el error de la API tiene un mensaje, lo mostramos.
