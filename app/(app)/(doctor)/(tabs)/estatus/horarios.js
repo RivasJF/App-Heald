@@ -107,6 +107,7 @@ export default function Horarios() {
             setConsultationTime(String(schedule.consultationTime));
             setScheduleExists(true);
           }
+          setScheduleExists(!!(schedule && schedule.days));
           setError(null);
         })
         .catch(err => {

@@ -11,3 +11,9 @@
  poder quitar cierre antes de tiempo (doctor)
 
  poder quitar dia no laboral (doctor)
+
+ apk bug de carga maps (app)
+
+ error carga horas today(cliente)
+ 
+ error carga horas citas ya creadas(doctor)

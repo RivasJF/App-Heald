@@ -1,13 +1,13 @@
 {
   "expo": {
     "name": "app-Heald-0.1",
-    "slug": "app-Heald-0.1",
+    "slug": "app-heald-0-1",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
-    "scheme": "heald-app",
+    "scheme": "healdapp",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -21,13 +21,20 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.rivasjf.healdapp01"
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
       "expo-router"
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "cf3b981a-b161-4621-9f91-14105ede503e"
+      }
+    }
   }
 }
