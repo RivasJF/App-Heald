@@ -1,13 +1,15 @@
 import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
-import MapView, { Marker } from "react-native-maps";
+// Usamos Leaflet dentro de WebView en lugar de react-native-maps
 import * as Location from "expo-location";
-import { useEffect, useState } from "react";
-import { View, StyleSheet, Text, ActivityIndicator, TouchableOpacity, Alert, Platform, Linking } from "react-native";
+import { useEffect, useState, useRef } from "react";
+import { View, StyleSheet, Text, ActivityIndicator, TouchableOpacity, Alert, Platform, Linking, Dimensions } from "react-native";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { createClinic, updateClinic } from '../../../../../src/services/clinicService';
 import Constants from 'expo-constants';
 
 const INITIAL_DELTA = 0.005;
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+const MAP_HEIGHT = SCREEN_HEIGHT * 0.75; // 3/4 de la pantalla
 
 export default function UbicacionConsultorioScreen() {
   const router = useRouter();
@@ -20,6 +22,7 @@ export default function UbicacionConsultorioScreen() {
   const [address, setAddress] = useState("Cargando dirección...");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const webviewRef = useRef(null);
 
   const isStandalone = Constants.appOwnership === 'standalone';
   const expoApiKey = (Constants.manifest && Constants.manifest.android && Constants.manifest.android.config && Constants.manifest.android.config.googleMaps && Constants.manifest.android.config.googleMaps.apiKey) ||
@@ -181,27 +184,8 @@ export default function UbicacionConsultorioScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <Stack.Screen options={{ title: clinicToEdit ? 'Actualizar Consultorio' : 'Registrar Consultorio', headerShown: false }} />
-      {canRenderMap ? (
-        <MapView
-          style={styles.map}
-          initialRegion={{
-            latitude: location.latitude,
-            longitude: location.longitude,
-            latitudeDelta: INITIAL_DELTA,
-            longitudeDelta: INITIAL_DELTA,
-          }}
-          onPress={handleMapPress}
-          region={{
-            latitude: location.latitude,
-            longitude: location.longitude,
-            latitudeDelta: INITIAL_DELTA,
-            longitudeDelta: INITIAL_DELTA,
-          }}
-        >
-          <Marker coordinate={location} title="Ubicación del Consultorio" description={address} />
-        </MapView>
-      ) : (
-        (() => {
+      <View style={styles.mapContainer}>
+        {(() => {
           let WebView = null;
           try {
             // eslint-disable-next-line global-require
@@ -211,14 +195,15 @@ export default function UbicacionConsultorioScreen() {
           }
 
           if (WebView) {
-            const osmHtml = `<!doctype html><html><head><meta name="viewport" content="initial-scale=1.0, maximum-scale=1.0"/><link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/><style>html,body,#map{height:100%;margin:0;padding:0} .leaflet-container{background:#fff}</style></head><body><div id="map"></div><script src="https://unpkg.com/leaflet/dist/leaflet.js"></script><script> (function(){try{var lat=${location.latitude}, lng=${location.longitude}; var map=L.map('map').setView([lat,lng],15); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19, attribution:'© OpenStreetMap contributors'}).addTo(map); var marker=L.marker([lat,lng],{draggable:true}).addTo(map); marker.on('dragend', function(e){ var p=e.target.getLatLng(); try{ window.ReactNativeWebView.postMessage(JSON.stringify({lat:p.lat,lng:p.lng})); }catch(err){} }); }catch(err){ console.error(err);} })();</script></body></html>`;
+            const osmHtml = `<!doctype html><html><head><meta name="viewport" content="initial-scale=1.0, maximum-scale=1.0"/><link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/><style>html,body,#map{height:100%;margin:0;padding:0} .leaflet-container{background:#fff}</style></head><body><div id="map"></div><script src="https://unpkg.com/leaflet/dist/leaflet.js"></script><script> (function(){try{var lat=${location.latitude}, lng=${location.longitude}; var map=L.map('map').setView([lat,lng],15); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19, attribution:'© OpenStreetMap contributors'}).addTo(map); var marker=L.marker([lat,lng],{draggable:true}).addTo(map); marker.on('dragend', function(e){ var p=e.target.getLatLng(); try{ window.ReactNativeWebView.postMessage(JSON.stringify({lat:p.lat,lng:p.lng})); }catch(err){} }); map.on('click', function(e){ try{ marker.setLatLng(e.latlng); window.ReactNativeWebView.postMessage(JSON.stringify({lat:e.latlng.lat,lng:e.latlng.lng})); }catch(err){} }); window.centerOn = function(lat,lng){ try{ map.setView([lat,lng],15); marker.setLatLng([lat,lng]); }catch(err){} }; }catch(err){ console.error(err);} })();</script></body></html>`;
 
             return (
               <>
                 <WebView
+                  ref={webviewRef}
                   originWhitelist={["*"]}
                   source={{ html: osmHtml }}
-                  style={styles.map}
+                  style={styles.webview}
                   javaScriptEnabled={true}
                   domStorageEnabled={true}
                   mixedContentMode={'always'}
@@ -228,24 +213,34 @@ export default function UbicacionConsultorioScreen() {
                   onMessage={(event) => {
                     try {
                       const payload = JSON.parse(event.nativeEvent.data);
-                      if (payload && payload.lat && payload.lng) {
-                        const newCoords = { latitude: payload.lat, longitude: payload.lng };
+                      if (payload && (payload.lat === 0 || payload.lat) && (payload.lng === 0 || payload.lng)) {
+                        const newCoords = { latitude: Number(payload.lat), longitude: Number(payload.lng) };
                         setLocation(newCoords);
-                        setAddress('Ubicación seleccionada');
+                        fetchAddress(newCoords);
                       }
                     } catch (err) {}
                   }}
-                  onLoadStart={() => {}}
-                  onLoadEnd={() => {}}
                   onError={(e) => { console.warn('WebView error', e); Alert.alert('Error', 'No se pudo cargar el mapa embebido.'); }}
                 />
+
+                <TouchableOpacity
+                  style={styles.centerButton}
+                  onPress={() => {
+                    if (webviewRef.current && location) {
+                      const js = `window.centerOn(${location.latitude}, ${location.longitude});true;`;
+                      webviewRef.current.injectJavaScript(js);
+                    }
+                  }}
+                >
+                  <Text style={styles.centerButtonText}>Centrar</Text>
+                </TouchableOpacity>
               </>
             );
           }
 
           return (
             <View style={styles.mapPlaceholder}>
-              <Text style={{ textAlign: 'center', color: '#072B66', marginBottom: 12 }}>Mapa no disponible: falta API key de Google Maps en esta build.</Text>
+              <Text style={{ textAlign: 'center', color: '#072B66', marginBottom: 12 }}>Mapa no disponible: falta WebView o falla al cargar.</Text>
               <TouchableOpacity style={styles.refreshButton} onPress={async () => {
                 const geoUrl = `geo:${location.latitude},${location.longitude}?q=${location.latitude},${location.longitude}`;
                 const webUrl = `https://www.google.com/maps/search/?api=1&query=${location.latitude},${location.longitude}`;
@@ -256,8 +251,8 @@ export default function UbicacionConsultorioScreen() {
               </TouchableOpacity>
             </View>
           );
-        })()
-      )}
+        })()}
+      </View>
       <View style={styles.infoPanel}>
         <Text style={styles.addressText}>📍 {address}</Text>
         <Text style={styles.coordsText}>Lat: {location.latitude.toFixed(5)}, Lng: {location.longitude.toFixed(5)}</Text>
@@ -279,44 +274,138 @@ export default function UbicacionConsultorioScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  map: { flex: 3, width: '100%' },
-  infoPanel: {
+  container: { 
+    flex: 1, 
+    backgroundColor: '#fff' 
+  },
+  loadingContainer: { 
+    flex: 1, 
+    justifyContent: 'center', 
+    alignItems: 'center',
+    backgroundColor: '#F5F8FF',
+  },
+  loadingText: { 
+    marginTop: 10, 
+    color: '#072B66',
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  mapContainer: {
+    height: MAP_HEIGHT,
+    width: '100%',
+    position: 'relative',
+  },
+  webview: { 
     flex: 1,
+    width: '100%',
+  },
+  centerButton: { 
+    position: 'absolute', 
+    right: 16, 
+    bottom: 16, 
+    backgroundColor: '#fff', 
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  centerButtonText: { 
+    color: '#072B66', 
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  mapPlaceholder: { 
+    flex: 1, 
+    justifyContent: 'center', 
+    alignItems: 'center', 
     padding: 20,
     backgroundColor: '#F5F8FF',
-    borderTopWidth: 1,
-    borderTopColor: '#D7E8FF',
-    justifyContent: 'center',
   },
-  addressText: { fontSize: 16, fontWeight: '600', color: '#072B66', marginBottom: 8 },
-  coordsText: { fontSize: 14, color: '#6B82B1', marginBottom: 16 },
-  buttonContainer: {
-    flexDirection: 'row',
-    gap: 10,
-    marginTop: 12,
+  mapPlaceholderText: { 
+    textAlign: 'center', 
+    color: '#072B66', 
+    marginBottom: 20,
+    fontSize: 14,
+    lineHeight: 20,
   },
-  refreshButton: {
-    flex: 1,
-    backgroundColor: '#6B82B1',
-    padding: 15,
+  openMapsButton: {
+    backgroundColor: '#3F51B5',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
     borderRadius: 12,
-    alignItems: 'center',
   },
-  refreshButtonText: {
+  openMapsButtonText: {
     color: 'white',
     fontSize: 14,
     fontWeight: 'bold',
-    textAlign: 'center',
+  },
+  infoPanel: {
+    flex: 1,
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 10,
+    marginTop: -20,
+  },
+  infoPanelContent: {
+    flex: 1,
+    padding: 20,
+    justifyContent: 'space-between',
+  },
+  addressContainer: {
+    marginBottom: 16,
+  },
+  addressText: { 
+    fontSize: 16, 
+    fontWeight: '600', 
+    color: '#072B66', 
+    marginBottom: 6,
+    lineHeight: 22,
+  },
+  coordsText: { 
+    fontSize: 13, 
+    color: '#6B82B1',
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  refreshButton: {
+    flex: 1,
+    backgroundColor: '#E8EFF9',
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  refreshButtonText: {
+    color: '#3F51B5',
+    fontSize: 14,
+    fontWeight: '700',
   },
   saveButton: {
     flex: 1,
     backgroundColor: '#3F51B5',
-    padding: 15,
+    padding: 16,
     borderRadius: 12,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  saveButtonText: { color: 'white', fontSize: 16, fontWeight: 'bold' },
-  disabledButton: { opacity: 0.7 },
+  saveButtonText: { 
+    color: 'white', 
+    fontSize: 16, 
+    fontWeight: '700',
+  },
+  disabledButton: { 
+    opacity: 0.6,
+  },
 });
