@@ -196,7 +196,7 @@ export default function CreateClinicScreen() {
                 <WebView
                   ref={webviewRef}
                   originWhitelist={["*"]}
-                  source={{ html: osmHtml }}
+                  source={{ html: osmHtml , baseUrl: 'https://localhost/'}}
                   style={styles.webview}
                   javaScriptEnabled={true}
                   domStorageEnabled={true}
