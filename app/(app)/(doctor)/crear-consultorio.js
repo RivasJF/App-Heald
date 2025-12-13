@@ -219,18 +219,6 @@ export default function CreateClinicScreen() {
                     Alert.alert('Error', 'No se pudo cargar el mapa embebido.'); 
                   }}
                 />
-
-                <TouchableOpacity
-                  style={styles.centerButton}
-                  onPress={() => {
-                    if (webviewRef.current && location) {
-                      const js = `window.centerOn(${location.latitude}, ${location.longitude});true;`;
-                      webviewRef.current.injectJavaScript(js);
-                    }
-                  }}
-                >
-                  <Text style={styles.centerButtonText}>📍 Centrar</Text>
-                </TouchableOpacity>
               </>
             );
           }
