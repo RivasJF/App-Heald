@@ -9,7 +9,7 @@ import Constants from 'expo-constants';
 
 const INITIAL_DELTA = 0.005;
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
-const MAP_HEIGHT = SCREEN_HEIGHT * 0.75; // 3/4 de la pantalla
+const MAP_HEIGHT = SCREEN_HEIGHT * 0.65; // 65% de la pantalla para dejar más espacio abajo
 
 export default function UbicacionConsultorioScreen() {
   const router = useRouter();
@@ -254,19 +254,24 @@ export default function UbicacionConsultorioScreen() {
         })()}
       </View>
       <View style={styles.infoPanel}>
-        <Text style={styles.addressText}>📍 {address}</Text>
-        <Text style={styles.coordsText}>Lat: {location.latitude.toFixed(5)}, Lng: {location.longitude.toFixed(5)}</Text>
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity style={styles.refreshButton} onPress={handleRefreshLocation} disabled={isLoading}>
-            <Text style={styles.refreshButtonText}>{isLoading ? '🔄 Actualizando...' : '🔄 Actualizar'}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.saveButton, isSaving && styles.disabledButton]}
-            onPress={handleSaveLocation}
-            disabled={isSaving}
-          >
-            {isSaving ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveButtonText}>Confirmar Ubicación</Text>}
-          </TouchableOpacity>
+        <View style={styles.infoPanelContent}>
+          <View style={styles.addressContainer}>
+            <Text style={styles.addressText}>📍 {address}</Text>
+            <Text style={styles.coordsText}>Lat: {location.latitude.toFixed(5)}, Lng: {location.longitude.toFixed(5)}</Text>
+          </View>
+
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity style={styles.refreshButton} onPress={handleRefreshLocation} disabled={isLoading}>
+              <Text style={styles.refreshButtonText}>{isLoading ? '🔄 Actualizando...' : '🔄 Actualizar'}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.saveButton, isSaving && styles.disabledButton]}
+              onPress={handleSaveLocation}
+              disabled={isSaving}
+            >
+              {isSaving ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveButtonText}>Confirmar Ubicación</Text>}
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     </SafeAreaView>
@@ -332,6 +337,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
   },
+  instructionText: { textAlign: 'center', marginVertical: 8, color: '#072B66' },
   openMapsButton: {
     backgroundColor: '#3F51B5',
     paddingVertical: 12,
@@ -381,8 +387,10 @@ const styles = StyleSheet.create({
   },
   refreshButton: {
     flex: 1,
+    minWidth: 0,
     backgroundColor: '#E8EFF9',
-    padding: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
@@ -391,11 +399,14 @@ const styles = StyleSheet.create({
     color: '#3F51B5',
     fontSize: 14,
     fontWeight: '700',
+    textAlign: 'center',
   },
   saveButton: {
     flex: 1,
+    minWidth: 0,
     backgroundColor: '#3F51B5',
-    padding: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
@@ -404,6 +415,7 @@ const styles = StyleSheet.create({
     color: 'white', 
     fontSize: 16, 
     fontWeight: '700',
+    textAlign: 'center',
   },
   disabledButton: { 
     opacity: 0.6,
