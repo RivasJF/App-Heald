@@ -33,7 +33,7 @@ export default function Register() {
     const day = d.getDate().toString().padStart(2, "0");
     const month = (d.getMonth() + 1).toString().padStart(2, "0");
     const year = d.getFullYear(); 
-    return `${year}-${month}-${day}T00:00:00.000Z`;
+    return `${year}-${month}-${day}`;
   };
 
   const handleRegister = () => {
