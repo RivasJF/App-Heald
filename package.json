@@ -1,5 +1,5 @@
 {
-  "name": "app-heald-1.0",
+  "name": "app-heald",
   "version": "1.0.0",
   "main": "expo-router/entry",
   "scripts": {
