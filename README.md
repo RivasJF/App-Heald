@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://private-user-images.githubusercontent.com/130021805/531635763-304987d7-4c68-4e63-b39c-7ff366d3a835.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3Njc0NTY0NTgsIm5iZiI6MTc2NzQ1NjE1OCwicGF0aCI6Ii8xMzAwMjE4MDUvNTMxNjM1NzYzLTMwNDk4N2Q3LTRjNjgtNGU2My1iMzljLTdmZjM2NmQzYTgzNS5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYwMTAzJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MDEwM1QxNjAyMzhaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT1kMzE0NjM0YzAzYjEwZmU3MmM1ZTkzOGQwNzBmMDI1Zjc1ZmNmMGRmYTc3YTJjMDNjZWM0NGVlNTNmNGE5OWY1JlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCJ9.xGb4izBZjenUwrM2HJJIKEM3C9YoWcYjF6aKCmLM2HA" width="120" alt="Heald Logo" style="border-radius: 50%;"/>
+  <img src="assets/icon.png" width="120" alt="Heald Logo" style="border-radius: 50%;"/>
 </div>
 
 <h1 align="center">Heald - Frontend</h1>
