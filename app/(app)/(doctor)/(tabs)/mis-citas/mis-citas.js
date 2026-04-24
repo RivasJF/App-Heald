@@ -7,6 +7,8 @@ import { findByDoctor } from '../../../../../src/services/appointmentService';
 import { getDoctorByUserId } from '../../../../../src/services/doctorService';
 import { FontAwesome } from '@expo/vector-icons';
 
+const PAGE_SIZE = 5;
+
 export default function DoctorAppointmentsScreen() {
   const router = useRouter();
   const { user } = useAuth();
@@ -14,6 +16,7 @@ export default function DoctorAppointmentsScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [filter, setFilter] = useState('proximas'); // 'proximas' o 'pasadas'
+  const [page, setPage] = useState(1);
 
   const fetchCitas = useCallback(async () => {
     if (!user?.id) {
@@ -76,6 +79,23 @@ export default function DoctorAppointmentsScreen() {
     });
   }, [allCitas, filter]);
 
+  const totalPages = useMemo(() => {
+    return Math.max(1, Math.ceil(filteredCitas.length / PAGE_SIZE));
+  }, [filteredCitas]);
+
+  const paginatedCitas = useMemo(() => {
+    const safePage = Math.min(page, totalPages);
+    const start = (safePage - 1) * PAGE_SIZE;
+    return filteredCitas.slice(start, start + PAGE_SIZE);
+  }, [filteredCitas, page, totalPages]);
+
+  const hasNextPage = page < totalPages;
+
+  const handleFilterChange = useCallback((nextFilter) => {
+    setFilter(nextFilter);
+    setPage(1);
+  }, []);
+
   const renderItem = ({ item }) => {
     const fecha = new Date(item.startTime).toLocaleDateString('es-ES', {
       weekday: 'long', day: 'numeric', month: 'short'
@@ -122,13 +142,13 @@ export default function DoctorAppointmentsScreen() {
       <View style={styles.filterContainer}>
         <TouchableOpacity
           style={[styles.filterButton, filter === 'proximas' && styles.filterButtonActive]}
-          onPress={() => setFilter('proximas')}
+          onPress={() => handleFilterChange('proximas')}
         >
           <Text style={[styles.filterText, filter === 'proximas' && styles.filterTextActive]}>Próximas</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.filterButton, filter === 'pasadas' && styles.filterButtonActive]}
-          onPress={() => setFilter('pasadas')}
+          onPress={() => handleFilterChange('pasadas')}
         >
           <Text style={[styles.filterText, filter === 'pasadas' && styles.filterTextActive]}>Pasadas</Text>
         </TouchableOpacity>
@@ -139,13 +159,35 @@ export default function DoctorAppointmentsScreen() {
       ) : error ? (
         <Text style={styles.errorText}>{error}</Text>
       ) : (
-        <FlatList
-          data={filteredCitas}
-          renderItem={renderItem}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={{ paddingTop: 10 }}
-          ListEmptyComponent={<Text style={styles.emptyText}>No tienes citas en esta categoría.</Text>}
-        />
+        <View style={styles.listWrapper}>
+          <FlatList
+            data={paginatedCitas}
+            renderItem={renderItem}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={{ paddingTop: 10 }}
+            ListEmptyComponent={<Text style={styles.emptyText}>No tienes citas en esta categoría.</Text>}
+          />
+
+          <View style={styles.paginationContainer}>
+            <TouchableOpacity
+              style={[styles.paginationButton, page === 1 && styles.paginationButtonDisabled]}
+              onPress={() => setPage((prev) => Math.max(1, prev - 1))}
+              disabled={page === 1 || loading}
+            >
+              <Text style={[styles.paginationButtonText, page === 1 && styles.paginationButtonTextDisabled]}>Anterior</Text>
+            </TouchableOpacity>
+
+            <Text style={styles.pageText}>Página {Math.min(page, totalPages)}</Text>
+
+            <TouchableOpacity
+              style={[styles.paginationButton, !hasNextPage && styles.paginationButtonDisabled]}
+              onPress={() => setPage((prev) => prev + 1)}
+              disabled={!hasNextPage || loading}
+            >
+              <Text style={[styles.paginationButtonText, !hasNextPage && styles.paginationButtonTextDisabled]}>Siguiente</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       )}
     </SafeAreaView>
   );
@@ -205,5 +247,35 @@ const styles = StyleSheet.create({
     color: '#6B82B1',
     marginTop: 30,
     fontSize: 16,
+  },
+  listWrapper: {
+    flex: 1,
+  },
+  paginationContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 8,
+    marginBottom: 6,
+  },
+  paginationButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+    backgroundColor: '#3F51B5',
+  },
+  paginationButtonDisabled: {
+    backgroundColor: '#B0C4DE',
+  },
+  paginationButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
+  paginationButtonTextDisabled: {
+    color: '#EAF1FF',
+  },
+  pageText: {
+    color: '#3F51B5',
+    fontWeight: '700',
   },
 });

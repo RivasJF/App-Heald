@@ -1,8 +1,8 @@
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 
-const LOCAL = '192.168.0.27:3000';
-// const WEB = 'server-heald.onrender.com'; 
+const LOCAL = '192.168.0.25:3000';
+// const WEB = 'server-heald.onrender.com'; r
 // const PROD = 'server.rivascript';
 
 const API_BASE_URL = `http://${LOCAL}`;

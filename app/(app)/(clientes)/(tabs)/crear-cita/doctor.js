@@ -3,7 +3,9 @@ import { Stack, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useContext, useEffect, useState } from 'react';
 import { CitaContext } from './+context/CitaContext';
-import { getNearbyClinics } from '../../../../../src/services/clinicService';
+import { getNearbyClinicsPagination } from '../../../../../src/services/clinicService';
+
+const PAGE_SIZE = 10;
 
 export default function DoctorScreen() {
   const router = useRouter();
@@ -13,6 +15,12 @@ export default function DoctorScreen() {
   const [inactiveDoctors, setInactiveDoctors] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [page, setPage] = useState(1);
+  const [hasNextPage, setHasNextPage] = useState(false);
+
+  useEffect(() => {
+    setPage(1);
+  }, [selectedLocation]);
 
   useEffect(() => {
     if (!selectedLocation) {
@@ -26,11 +34,15 @@ export default function DoctorScreen() {
     const fetchNearbyDoctors = async () => {
       try {
         setIsLoading(true);
-        const nearbyClinics = await getNearbyClinics({
+        const responseData = await getNearbyClinicsPagination({
           lat: selectedLocation.latitude,
           lng: selectedLocation.longitude,
           radius: 10000, // 10km
-        });
+        }, page, PAGE_SIZE);
+
+        const nearbyClinics = Array.isArray(responseData)
+          ? responseData
+          : (responseData?.data || responseData?.items || []);
 
         const active = [];
         const inactive = [];
@@ -59,17 +71,23 @@ export default function DoctorScreen() {
 
         setActiveDoctors(active);
         setInactiveDoctors(inactive);
+        setHasNextPage(
+          typeof responseData?.hasNextPage === 'boolean'
+            ? responseData.hasNextPage
+            : nearbyClinics.length === PAGE_SIZE
+        );
         setError(null);
       } catch (e) {
         console.error('Error fetching nearby doctors:', e);
         setError('No se pudieron encontrar doctores cercanos.');
+        setHasNextPage(false);
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchNearbyDoctors();
-  }, [selectedLocation]);
+  }, [selectedLocation, page]);
 
   const handleSelectDoctor = (doctor) => {
     setSelectedDoctor(doctor);
@@ -79,6 +97,14 @@ export default function DoctorScreen() {
   const handleCancel = () => {
     resetCita();
     router.push('/(app)/(clientes)/(tabs)/crear-cita');
+  };
+
+  const handlePrevPage = () => {
+    setPage((prev) => Math.max(1, prev - 1));
+  };
+
+  const handleNextPage = () => {
+    setPage((prev) => prev + 1);
   };
 
   const renderDoctorCard = ({ item: doctor }) => (
@@ -117,16 +143,38 @@ export default function DoctorScreen() {
       return <Text style={styles.errorText}>{error}</Text>;
     }
     return (
-      <SectionList
-        sections={sections}
-        renderItem={renderDoctorCard}
-        renderSectionHeader={({ section: { title } }) => (
-          <Text style={styles.sectionHeader}>{title}</Text>
-        )}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContainer}
-        ListEmptyComponent={<Text style={styles.emptyText}>No se encontraron doctores en esta área.</Text>}
-      />
+      <View style={styles.listWrapper}>
+        <SectionList
+          sections={sections}
+          renderItem={renderDoctorCard}
+          renderSectionHeader={({ section: { title } }) => (
+            <Text style={styles.sectionHeader}>{title}</Text>
+          )}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listContainer}
+          ListEmptyComponent={<Text style={styles.emptyText}>No se encontraron doctores en esta área.</Text>}
+        />
+
+        <View style={styles.paginationContainer}>
+          <TouchableOpacity
+            style={[styles.paginationButton, page === 1 && styles.paginationButtonDisabled]}
+            onPress={handlePrevPage}
+            disabled={page === 1 || isLoading}
+          >
+            <Text style={[styles.paginationButtonText, page === 1 && styles.paginationButtonTextDisabled]}>Anterior</Text>
+          </TouchableOpacity>
+
+          <Text style={styles.pageText}>Página {page}</Text>
+
+          <TouchableOpacity
+            style={[styles.paginationButton, !hasNextPage && styles.paginationButtonDisabled]}
+            onPress={handleNextPage}
+            disabled={!hasNextPage || isLoading}
+          >
+            <Text style={[styles.paginationButtonText, !hasNextPage && styles.paginationButtonTextDisabled]}>Siguiente</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
     );
   };
 
@@ -171,6 +219,9 @@ const styles = StyleSheet.create({
   listContainer: {
     padding: 18,
     paddingBottom: 40,
+  },
+  listWrapper: {
+    flex: 1,
   },
   card: {
     backgroundColor: '#FFFFFF',
@@ -246,5 +297,32 @@ const styles = StyleSheet.create({
     backgroundColor: '#F5F8FF',
     paddingTop: 16,
     paddingBottom: 8,
+  },
+  paginationContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginHorizontal: 18,
+    marginBottom: 10,
+  },
+  paginationButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+    backgroundColor: '#0B4EF2',
+  },
+  paginationButtonDisabled: {
+    backgroundColor: '#B0C4DE',
+  },
+  paginationButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
+  paginationButtonTextDisabled: {
+    color: '#EAF1FF',
+  },
+  pageText: {
+    color: '#36548B',
+    fontWeight: '700',
   },
 });

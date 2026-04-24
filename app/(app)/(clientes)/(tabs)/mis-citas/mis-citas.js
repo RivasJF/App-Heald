@@ -3,8 +3,10 @@ import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity }
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState, useCallback, useMemo } from 'react';
 import { useAuth } from '../../../../../src/context/AuthContext';
-import { findByPatient } from '../../../../../src/services/appointmentService';
+import { findByPatientPagination } from '../../../../../src/services/appointmentService';
 import { FontAwesome } from '@expo/vector-icons';
+
+const PAGE_SIZE = 5;
  
 export default function MisCitas() {
   const router = useRouter();
@@ -13,6 +15,8 @@ export default function MisCitas() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [filter, setFilter] = useState('proximas'); // 'proximas' o 'pasadas'
+  const [page, setPage] = useState(1);
+  const [hasNextPage, setHasNextPage] = useState(false);
 
   const fetchCitas = useCallback(async () => {
       if (!user?.id) {
@@ -22,16 +26,26 @@ export default function MisCitas() {
 
       try {
         setLoading(true);
-        const data = await findByPatient(user.id);
-        setCitas(data);
+        const responseData = await findByPatientPagination(user.id, page, PAGE_SIZE);
+        const appointments = Array.isArray(responseData)
+          ? responseData
+          : (responseData?.data || responseData?.items || []);
+
+        setCitas(appointments);
+        setHasNextPage(
+          typeof responseData?.hasNextPage === 'boolean'
+            ? responseData.hasNextPage
+            : appointments.length === PAGE_SIZE
+        );
         setError(null);
       } catch (e) {
         setError('No se pudieron cargar tus citas.');
+        setHasNextPage(false);
         console.error('Error fetching appointments:', e);
       } finally {
         setLoading(false);
       }
-  }, [user]);
+  }, [user, page]);
 
   useFocusEffect(
     // La función se ejecuta cada vez que la pantalla entra en foco
@@ -67,6 +81,11 @@ export default function MisCitas() {
       return startLocal < now;
     });
   }, [citas, filter]);
+
+  const handleFilterChange = useCallback((nextFilter) => {
+    setFilter(nextFilter);
+    setPage(1);
+  }, []);
 
   const renderItem = ({ item }) => {
     const fecha = new Date(item.startTime).toLocaleDateString('es-ES', {
@@ -124,13 +143,13 @@ export default function MisCitas() {
       <View style={styles.filterContainer}>
         <TouchableOpacity
           style={[styles.filterButton, filter === 'proximas' && styles.filterButtonActive]}
-          onPress={() => setFilter('proximas')}
+          onPress={() => handleFilterChange('proximas')}
         >
           <Text style={[styles.filterText, filter === 'proximas' && styles.filterTextActive]}>Próximas</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.filterButton, filter === 'pasadas' && styles.filterButtonActive]}
-          onPress={() => setFilter('pasadas')}
+          onPress={() => handleFilterChange('pasadas')}
         >
           <Text style={[styles.filterText, filter === 'pasadas' && styles.filterTextActive]}>Pasadas</Text>
         </TouchableOpacity>
@@ -141,15 +160,37 @@ export default function MisCitas() {
       ) : error ? (
         <Text style={styles.errorText}>{error}</Text>
       ) : (
-        <FlatList
-          data={filteredCitas}
-          renderItem={renderItem}
-          keyExtractor={(item) => item.id}
-          onRefresh={fetchCitas} // Permite "pull-to-refresh"
-          refreshing={loading}   // Muestra el indicador de carga en pull-to-refresh
-          contentContainerStyle={{ paddingTop: 20 }}
-          ListEmptyComponent={<Text style={styles.emptyText}>Aún no tienes citas agendadas.</Text>}
-        />
+        <View style={styles.listWrapper}>
+          <FlatList
+            data={filteredCitas}
+            renderItem={renderItem}
+            keyExtractor={(item) => item.id}
+            onRefresh={fetchCitas} // Permite "pull-to-refresh"
+            refreshing={loading}   // Muestra el indicador de carga en pull-to-refresh
+            contentContainerStyle={{ paddingTop: 20 }}
+            ListEmptyComponent={<Text style={styles.emptyText}>Aún no tienes citas agendadas.</Text>}
+          />
+
+          <View style={styles.paginationContainer}>
+            <TouchableOpacity
+              style={[styles.paginationButton, page === 1 && styles.paginationButtonDisabled]}
+              onPress={() => setPage((prev) => Math.max(1, prev - 1))}
+              disabled={page === 1 || loading}
+            >
+              <Text style={[styles.paginationButtonText, page === 1 && styles.paginationButtonTextDisabled]}>Anterior</Text>
+            </TouchableOpacity>
+
+            <Text style={styles.pageText}>Página {page}</Text>
+
+            <TouchableOpacity
+              style={[styles.paginationButton, !hasNextPage && styles.paginationButtonDisabled]}
+              onPress={() => setPage((prev) => prev + 1)}
+              disabled={!hasNextPage || loading}
+            >
+              <Text style={[styles.paginationButtonText, !hasNextPage && styles.paginationButtonTextDisabled]}>Siguiente</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       )}
     </SafeAreaView>
   );
@@ -250,5 +291,35 @@ const styles = StyleSheet.create({
     color: '#6B82B1',
     marginTop: 30,
     fontSize: 16,
+  },
+  listWrapper: {
+    flex: 1,
+  },
+  paginationContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 8,
+    marginBottom: 6,
+  },
+  paginationButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+    backgroundColor: '#0B4EF2',
+  },
+  paginationButtonDisabled: {
+    backgroundColor: '#B0C4DE',
+  },
+  paginationButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
+  paginationButtonTextDisabled: {
+    color: '#EAF1FF',
+  },
+  pageText: {
+    color: '#36548B',
+    fontWeight: '700',
   },
 });
