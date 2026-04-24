@@ -5,6 +5,8 @@ import { useContext, useMemo, useState, useEffect, useCallback } from 'react';
 import { CitaContext } from './+context/CitaContext';
 import { getDoctorAvailability } from '../../../../../src/services/appointmentService';
 
+const CDMX_TIME_ZONE = 'America/Mexico_City';
+
 export default function FechaScreen() {
   const router = useRouter();
   const { selectedDoctor, selectedDate, setSelectedDate, selectedSlot, setSelectedSlot } = useContext(CitaContext);
@@ -14,20 +16,50 @@ export default function FechaScreen() {
   const [isInitialLoad, setIsInitialLoad] = useState(true); // Nuevo estado para la carga inicial
   const [errorTimes, setErrorTimes] = useState(null);
 
+  const getDateKeyInCDMX = useCallback((dateValue = new Date()) => {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: CDMX_TIME_ZONE,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(dateValue);
+
+    const year = parts.find((part) => part.type === 'year')?.value;
+    const month = parts.find((part) => part.type === 'month')?.value;
+    const day = parts.find((part) => part.type === 'day')?.value;
+
+    return `${year}-${month}-${day}`;
+  }, []);
+
+  const formatTimeInCDMX = useCallback((isoString) => {
+    const dateValue = new Date(isoString);
+    return dateValue.toLocaleTimeString('es-MX', {
+      timeZone: CDMX_TIME_ZONE,
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    });
+  }, []);
+
   const dates = useMemo(() => {
     const list = [];
-    const today = new Date();
+    const cdmxToday = getDateKeyInCDMX(new Date());
+    const [baseYear, baseMonth, baseDay] = cdmxToday.split('-').map((value) => Number(value));
+    const baseDate = new Date(Date.UTC(baseYear, baseMonth - 1, baseDay, 12));
+
     for (let i = 0; i < 7; i++) { // Corregido: Mostrar 7 días comenzando desde hoy (i=0)
-      const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() + i);
-      const yyyy = d.getFullYear();
-      const mm = String(d.getMonth() + 1).padStart(2, '0');
-      const dd = String(d.getDate()).padStart(2, '0');
-      const dayLabel = d.toLocaleDateString('es-ES', { weekday: 'short' }).split('.')[0];
-      const dateNumber = String(d.getDate());
+      const d = new Date(baseDate);
+      d.setUTCDate(baseDate.getUTCDate() + i);
+
+      const yyyy = d.getUTCFullYear();
+      const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
+      const dd = String(d.getUTCDate()).padStart(2, '0');
+      const dayLabel = d.toLocaleDateString('es-ES', { weekday: 'short', timeZone: CDMX_TIME_ZONE }).split('.')[0];
+      const dateNumber = dd;
       list.push({ iso: `${yyyy}-${mm}-${dd}`, label: dayLabel, dateNumber: dateNumber });
     }
     return list;
-  }, []);
+  }, [getDateKeyInCDMX]);
 
   const fetchAvailability = useCallback(async (date) => {
     if (!selectedDoctor?.id) return;
@@ -47,25 +79,16 @@ export default function FechaScreen() {
         const parsed = availabilityData.available.map((slot) => ({
           ...slot,
           startDate: new Date(slot.start),
-          // startLocalDate: interpreta la cadena como hora local (igual que la UI que hace slice)
-          startLocalDate: new Date(slot.start ? slot.start.slice(0, -1) : slot.start),
           endDate: slot.end ? new Date(slot.end) : null,
         }));
 
         // Filtrar horarios que ya pasaron solo si la fecha seleccionada es hoy
-        const now = new Date();
-        const isToday = (() => {
-          const d = new Date();
-          const yyyy = d.getFullYear();
-          const mm = String(d.getMonth() + 1).padStart(2, '0');
-          const dd = String(d.getDate()).padStart(2, '0');
-          return `${yyyy}-${mm}-${dd}` === date;
-        })();
+        const nowInMillis = Date.now();
+        const isToday = getDateKeyInCDMX(new Date()) === date;
 
         const filteredSlots = parsed.filter((slot) => {
           if (isToday) {
-            // Comparar usando la fecha interpretada como local (startLocalDate)
-            return slot.startLocalDate > now; // solo incluir si está en el futuro hoy
+            return slot.startDate.getTime() > nowInMillis;
           }
           return true; // para días futuros incluir todos los horarios
         });
@@ -80,7 +103,7 @@ export default function FechaScreen() {
     } finally {
       setIsLoadingTimes(false);
     }
-  }, [selectedDoctor]);
+  }, [selectedDoctor, getDateKeyInCDMX]);
 
   useEffect(() => {
     // Este efecto se encarga de cargar la disponibilidad cuando la pantalla se monta
@@ -165,13 +188,7 @@ export default function FechaScreen() {
           ) : timeSlots.length > 0 ? (
             <View style={styles.timeGrid}>
               {timeSlots.map((slot) => {
-                // Quitamos la 'Z' para tratar la hora como local y no UTC
-                const localDate = new Date(slot.start.slice(0, -1)); 
-                const displayTime = localDate.toLocaleTimeString('es-MX', {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  hour12: true,
-                });
+                const displayTime = formatTimeInCDMX(slot.start);
                 const chosen = selectedSlot?.start === slot.start;
                 return (
                   <TouchableOpacity
