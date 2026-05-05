@@ -28,7 +28,7 @@ export default function TicketScreen() {
     : '';
   
   const readableTime = cita?.startTime
-    ? new Date(cita.startTime.slice(0, -1)).toLocaleTimeString('es-MX', {
+    ? new Date(cita.startTime).toLocaleTimeString('es-MX', {
         hour: '2-digit',
         minute: '2-digit',
         hour12: true,

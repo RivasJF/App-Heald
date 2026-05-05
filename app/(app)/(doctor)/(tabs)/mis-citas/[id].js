@@ -3,12 +3,32 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIn
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
 
+const CDMX_TIME_ZONE = 'America/Mexico_City';
+
 export default function DoctorCitaDetalle() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { cita: citaString } = params;
 
   const cita = citaString ? JSON.parse(citaString) : null;
+
+  const formatDateInCDMX = (dateString) => {
+    return new Date(dateString).toLocaleDateString('es-ES', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    });
+  };
+
+  const formatTimeInCDMX = (dateString) => {
+    return new Date(dateString).toLocaleTimeString('es-ES', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+      timeZone: CDMX_TIME_ZONE,
+    });
+  };
 
   if (!cita) {
     return (
@@ -18,17 +38,15 @@ export default function DoctorCitaDetalle() {
     );
   }
 
-  const fecha = new Date(cita.startTime).toLocaleDateString('es-ES', {
-    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
-  });
-  const horaInicio = new Date(cita.startTime.slice(0, -1)).toLocaleTimeString('es-MX', {
-    hour: '2-digit', minute: '2-digit', hour12: true,
-  });
-  const horaFin = new Date(cita.endTime.slice(0, -1)).toLocaleTimeString('es-MX', {
-    hour: '2-digit', minute: '2-digit', hour12: true,
-  });
+  // Formato de fecha y hora
+  const appointmentDate = formatDateInCDMX(cita.startTime);
+  const startTime = formatTimeInCDMX(cita.startTime);
+  const endTime = formatTimeInCDMX(cita.endTime);
+  const timeRange = `${startTime} - ${endTime}`;
 
+  // Información del paciente
   const patientName = cita.patient?.name || 'No asignado';
+  const clinicAddress = cita.clinicLocation.address || 'Dirección no disponible';
 
   return (
     <SafeAreaView style={styles.container}>
@@ -47,9 +65,9 @@ export default function DoctorCitaDetalle() {
             <Text style={styles.cardSubtitle}>ID de Cita: {cita.id}</Text>
           </View>
           <View style={styles.cardBody}>
-            <DetailRow icon="calendar" label="Fecha" value={fecha} />
-            <DetailRow icon="clock-o" label="Horario" value={`${horaInicio} - ${horaFin}`} />
-            <DetailRow icon="hospital-o" label="Ubicación" value={cita.clinicLocation.address} />
+            <DetailRow icon="calendar" label="Fecha" value={appointmentDate} />
+            <DetailRow icon="clock-o" label="Horario" value={timeRange} />
+            <DetailRow icon="hospital-o" label="Ubicación" value={clinicAddress} />
           </View>
         </View>
 

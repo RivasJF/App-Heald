@@ -25,7 +25,7 @@ export default function ResumenScreen() {
     : '';
   
   const displayTime = selectedSlot?.start 
-    ? new Date(selectedSlot.start.slice(0, -1)).toLocaleTimeString('es-MX', { 
+    ? new Date(selectedSlot.start).toLocaleTimeString('es-MX', { 
         hour: '2-digit', 
         minute: '2-digit', 
         hour12: true 

@@ -5,6 +5,8 @@ import { FontAwesome } from '@expo/vector-icons';
 import { useState } from 'react';
 import { cancelAppointment } from '../../../../../src/services/appointmentService';
 
+const CDMX_TIME_ZONE = 'America/Mexico_City';
+
 export default function CitaDetalle() {
   const router = useRouter();
   const params = useLocalSearchParams();
@@ -28,6 +30,24 @@ export default function CitaDetalle() {
     }
   };
 
+  const formatDateInCDMX = (dateString) => {
+    return new Date(dateString).toLocaleDateString('es-ES', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    });
+  };
+
+  const formatTimeInCDMX = (dateString) => {
+    return new Date(dateString).toLocaleTimeString('es-ES', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+      timeZone: CDMX_TIME_ZONE,
+    });
+  };
+
   if (!cita) {
     return (
       <SafeAreaView style={styles.container}>
@@ -36,21 +56,18 @@ export default function CitaDetalle() {
     );
   }
 
-  const fecha = new Date(cita.startTime).toLocaleDateString('es-ES', {
-    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
-  });
-  const horaInicio = new Date(cita.startTime.slice(0, -1)).toLocaleTimeString('es-MX', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: true,
-  });
-  const horaFin = new Date(cita.endTime.slice(0, -1)).toLocaleTimeString('es-MX', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: true,
-  });
+  // Formato de fecha y hora
+  const appointmentDate = formatDateInCDMX(cita.startTime);
+  const startTime = formatTimeInCDMX(cita.startTime);
+  const endTime = formatTimeInCDMX(cita.endTime);
+  const timeRange = `${startTime} - ${endTime} hrs.`;
 
+  // Información del doctor
   const doctorName = cita.doctor.user?.name || 'Doctor';
+  const doctorSpeciality = cita.doctor.speciality || 'Especialidad no disponible';
+  const clinicAddress = cita.clinicLocation.address || 'Dirección no disponible';
+
+  // Estados
   const isPastAppointment = parseLocal(cita.startTime) < new Date();
 
   const handleCancelAppointment = async () => {
@@ -98,12 +115,12 @@ export default function CitaDetalle() {
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <Text style={styles.cardTitle}>{doctorName}</Text>
-            <Text style={styles.cardSubtitle}>{cita.doctor.speciality}</Text>
+            <Text style={styles.cardSubtitle}>{doctorSpeciality}</Text>
           </View>
           <View style={styles.cardBody}>
-            <DetailRow icon="calendar" label="Fecha" value={fecha} />
-            <DetailRow icon="clock-o" label="Horario" value={`${horaInicio} - ${horaFin} hrs.`} />
-            <DetailRow icon="map-marker" label="Ubicación" value={cita.clinicLocation.address} />
+            <DetailRow icon="calendar" label="Fecha" value={appointmentDate} />
+            <DetailRow icon="clock-o" label="Horario" value={timeRange} />
+            <DetailRow icon="map-marker" label="Ubicación" value={clinicAddress} />
             <DetailRow icon="info-circle" label="ID de Cita" value={cita.id} />
           </View>
         </View>

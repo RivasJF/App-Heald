@@ -8,6 +8,7 @@ import { getDoctorByUserId } from '../../../../../src/services/doctorService';
 import { FontAwesome } from '@expo/vector-icons';
 
 const PAGE_SIZE = 5;
+const CDMX_TIME_ZONE = 'America/Mexico_City';
 
 export default function DoctorAppointmentsScreen() {
   const router = useRouter();
@@ -103,10 +104,19 @@ export default function DoctorAppointmentsScreen() {
     const hora = (function() {
       try {
         const s = item.startTime;
-        const parsed = (typeof s === 'string' && s.endsWith('Z')) ? new Date(s.slice(0, -1)) : new Date(s);
-        return parsed.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: true });
+        return s.toLocaleTimeString('es-ES', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+      timeZone: CDMX_TIME_ZONE,
+    });
       } catch (e) {
-        return new Date(item.startTime).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: true });
+        return new Date(item.startTime).toLocaleTimeString('es-ES', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+      timeZone: CDMX_TIME_ZONE,
+    });
       }
     })();
 
