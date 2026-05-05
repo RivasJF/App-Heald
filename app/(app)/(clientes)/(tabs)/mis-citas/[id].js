@@ -16,6 +16,18 @@ export default function CitaDetalle() {
   // Parseamos el string JSON para obtener el objeto de la cita
   const cita = citaString ? JSON.parse(citaString) : null;
 
+  const parseLocal = (isoString) => {
+    if (!isoString) return new Date(isoString);
+    try {
+      if (typeof isoString === 'string' && isoString.endsWith('Z')) {
+        return new Date(isoString.slice(0, -1));
+      }
+      return new Date(isoString);
+    } catch (error) {
+      return new Date(isoString);
+    }
+  };
+
   if (!cita) {
     return (
       <SafeAreaView style={styles.container}>
@@ -39,6 +51,7 @@ export default function CitaDetalle() {
   });
 
   const doctorName = cita.doctor.user?.name || 'Doctor';
+  const isPastAppointment = parseLocal(cita.startTime) < new Date();
 
   const handleCancelAppointment = async () => {
     Alert.alert(
@@ -97,17 +110,19 @@ export default function CitaDetalle() {
 
         {cancelError && <Text style={styles.errorText}>{cancelError}</Text>}
 
-        <View style={{ marginTop: 30 }}>
-          <TouchableOpacity
-            style={[styles.cancelButton, isCanceling && styles.disabledButton]}
-            onPress={handleCancelAppointment}
-            disabled={isCanceling}
-          >
-            {isCanceling
-              ? <ActivityIndicator color="#FFFFFF" />
-              : <Text style={styles.cancelButtonText}>Cancelar Cita</Text>}
-          </TouchableOpacity>
-        </View>
+        {!isPastAppointment && (
+          <View style={{ marginTop: 30 }}>
+            <TouchableOpacity
+              style={[styles.cancelButton, isCanceling && styles.disabledButton]}
+              onPress={handleCancelAppointment}
+              disabled={isCanceling}
+            >
+              {isCanceling
+                ? <ActivityIndicator color="#FFFFFF" />
+                : <Text style={styles.cancelButtonText}>Cancelar Cita</Text>}
+            </TouchableOpacity>
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );

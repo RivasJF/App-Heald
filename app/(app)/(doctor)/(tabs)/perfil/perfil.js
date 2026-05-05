@@ -56,6 +56,7 @@ export default function DoctorProfileScreen() {
       
       <View style={styles.header}>
         <View style={styles.headerRow}>
+          <View style={styles.headerSideSpacer} />
           <Text style={styles.title}>Mi Perfil</Text>
           <TouchableOpacity onPress={fetchDoctorProfile} disabled={loading}>
             <FontAwesome name="refresh" size={24} color={loading ? '#B0C4DE' : '#072B66'} />
@@ -125,6 +126,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  headerSideSpacer: {
+    width: 24,
+  },
   infoCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
@@ -141,12 +145,15 @@ const styles = StyleSheet.create({
     marginTop: 'auto', // Empuja el botón de logout hacia abajo
   },
   title: {
+    flex: 1,
+    textAlign: 'center',
     fontSize: 28,
     fontWeight: '800',
     color: '#072B66',
   },
   subtitle: {
     fontSize: 16,
+    textAlign:'center',
     color: '#6B82B1',
     marginTop: 4,
   },

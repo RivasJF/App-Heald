@@ -32,11 +32,25 @@ export default function Perfil() {
 
   const formattedBirthDate = profile?.birthDate
     ? new Date(profile.birthDate).toLocaleDateString('es-ES', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      })
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    })
     : 'No disponible';
+
+  const formattedPhoneNumber = profile?.phoneNumber
+    ? profile.phoneNumber.replace(/^\+52\s?/, '').trim()
+    : 'No disponible';
+
+  const getInitials = (name) => {
+    if (!name) return '?';
+    return name
+      .split(' ')
+      .slice(0, 2)
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase();
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -49,9 +63,12 @@ export default function Perfil() {
         <Text style={styles.errorText}>{error}</Text>
       ) : (
         <View style={styles.infoCard}>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>{getInitials(profile?.name)}</Text>
+          </View>
           <InfoRow icon="user" label="Nombre" value={profile?.name} />
           <InfoRow icon="envelope" label="Email" value={profile?.email} />
-          <InfoRow icon="phone" label="Teléfono" value={profile?.phoneNumber} />
+          <InfoRow icon="phone" label="Teléfono" value={formattedPhoneNumber} />
           <InfoRow icon="calendar" label="Fecha de nacimiento" value={formattedBirthDate} />
         </View>
       )}
@@ -81,9 +98,28 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
+    textAlign: 'center',
     fontWeight: '800',
     color: '#072B66',
-    marginBottom: 20,
+    marginBottom: 10,
+  },
+  avatar: {
+    width: 84,
+    height: 84,
+    borderRadius: 42,
+    backgroundColor: '#072B66',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
+    marginBottom: 12,
+    alignSelf: 'center',
+  },
+  avatarText: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#B5C9E8',
+    letterSpacing: -0.5,
   },
   infoCard: {
     backgroundColor: '#FFFFFF',

@@ -1,9 +1,9 @@
 import { Stack, useRouter, useFocusEffect } from 'expo-router';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useAuth } from '../../../../../src/context/AuthContext';
-import { findByPatientPagination } from '../../../../../src/services/appointmentService';
+import { findByPatient } from '../../../../../src/services/appointmentService';
 import { FontAwesome } from '@expo/vector-icons';
 
 const PAGE_SIZE = 5;
@@ -16,7 +16,6 @@ export default function MisCitas() {
   const [error, setError] = useState(null);
   const [filter, setFilter] = useState('proximas'); // 'proximas' o 'pasadas'
   const [page, setPage] = useState(1);
-  const [hasNextPage, setHasNextPage] = useState(false);
 
   const fetchCitas = useCallback(async () => {
       if (!user?.id) {
@@ -26,26 +25,17 @@ export default function MisCitas() {
 
       try {
         setLoading(true);
-        const responseData = await findByPatientPagination(user.id, page, PAGE_SIZE);
-        const appointments = Array.isArray(responseData)
-          ? responseData
-          : (responseData?.data || responseData?.items || []);
-
+        const responseData = await findByPatient(user.id);
+        const appointments = Array.isArray(responseData) ? responseData : [];
         setCitas(appointments);
-        setHasNextPage(
-          typeof responseData?.hasNextPage === 'boolean'
-            ? responseData.hasNextPage
-            : appointments.length === PAGE_SIZE
-        );
         setError(null);
       } catch (e) {
         setError('No se pudieron cargar tus citas.');
-        setHasNextPage(false);
         console.error('Error fetching appointments:', e);
       } finally {
         setLoading(false);
       }
-  }, [user, page]);
+  }, [user]);
 
   useFocusEffect(
     // La función se ejecuta cada vez que la pantalla entra en foco
@@ -81,6 +71,24 @@ export default function MisCitas() {
       return startLocal < now;
     });
   }, [citas, filter]);
+
+  const totalPages = useMemo(() => {
+    return Math.max(1, Math.ceil(filteredCitas.length / PAGE_SIZE));
+  }, [filteredCitas]);
+
+  const paginatedCitas = useMemo(() => {
+    const safePage = Math.min(page, totalPages);
+    const start = (safePage - 1) * PAGE_SIZE;
+    return filteredCitas.slice(start, start + PAGE_SIZE);
+  }, [filteredCitas, page, totalPages]);
+
+  const hasNextPage = page < totalPages;
+
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [page, totalPages]);
 
   const handleFilterChange = useCallback((nextFilter) => {
     setFilter(nextFilter);
@@ -134,7 +142,8 @@ export default function MisCitas() {
     <SafeAreaView style={styles.container}>
       <Stack.Screen options={{ title: 'Mis Citas' }} />
       <View style={styles.headerContainer}>
-        <Text style={styles.title}>Mis Citas Creadas</Text>
+        <View style={styles.headerSideSpacer} />
+        <Text style={styles.title}>Mis Citas</Text>
         <TouchableOpacity onPress={fetchCitas} disabled={loading}>
           <FontAwesome name="refresh" size={24} color={loading ? '#B0C4DE' : '#0B4EF2'} />
         </TouchableOpacity>
@@ -162,7 +171,7 @@ export default function MisCitas() {
       ) : (
         <View style={styles.listWrapper}>
           <FlatList
-            data={filteredCitas}
+            data={paginatedCitas}
             renderItem={renderItem}
             keyExtractor={(item) => item.id}
             onRefresh={fetchCitas} // Permite "pull-to-refresh"
@@ -207,14 +216,19 @@ const styles = StyleSheet.create({
   container: { flex: 1, padding: 24, backgroundColor: '#F5F8FF' },
   title: {
     fontSize: 28,
+    textAlign: 'center',
     fontWeight: '800',
     color: '#072B66',
+    flex: 1,
   },
   headerContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 10,
+  },
+  headerSideSpacer: {
+    width: 24,
   },
   filterContainer: {
     flexDirection: 'row',

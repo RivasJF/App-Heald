@@ -220,7 +220,7 @@ export default function DoctorStatusScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 24, backgroundColor: '#F5F8FF' },
-  title: { fontSize: 28, fontWeight: '800', color: '#072B66', marginBottom: 20 },
+  title: { fontSize: 28, fontWeight: '800', color: '#072B66', marginBottom: 20 , textAlign:'center'},
   card: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,

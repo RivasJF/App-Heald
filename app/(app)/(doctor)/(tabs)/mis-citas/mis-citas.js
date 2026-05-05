@@ -195,7 +195,7 @@ export default function DoctorAppointmentsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 24, backgroundColor: '#F5F8FF' },
-  title: { fontSize: 28, fontWeight: '800', color: '#072B66' },
+  title: { fontSize: 28, fontWeight: '800', color: '#072B66' , textAlign:'center'},
   filterContainer: {
     flexDirection: 'row',
     backgroundColor: '#E8EAF6',
