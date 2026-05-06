@@ -1,34 +1,14 @@
-import { Stack, Link } from 'expo-router';
+import { Stack } from 'expo-router';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useAuth } from '../../../../../src/context/AuthContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
-import { useEffect, useState } from 'react';
-import { getProfile } from '../../../../../src/services/authService';
+import { useProfile } from '../../../../../src/hooks/auth/useProfile.hook';
 
 export default function Perfil() {
   const { signOut } = useAuth();
-  const [profile, setProfile] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const {data:profile,isLoading,error} = useProfile();
 
-  useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        setLoading(true);
-        const profileData = await getProfile();
-        setProfile(profileData);
-        setError(null);
-      } catch (e) {
-        setError('No se pudieron cargar los datos del perfil.');
-        console.error('Error fetching profile:', e);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchProfile();
-  }, []);
 
   const formattedBirthDate = profile?.birthDate
     ? new Date(profile.birthDate).toLocaleDateString('es-ES', {
@@ -57,7 +37,7 @@ export default function Perfil() {
       <Stack.Screen options={{ headerShown: false }} />
       <Text style={styles.title}>Datos del Usuario</Text>
 
-      {loading ? (
+      {isLoading ? (
         <ActivityIndicator size="large" color="#0B4EF2" style={{ marginTop: 20 }} />
       ) : error ? (
         <Text style={styles.errorText}>{error}</Text>

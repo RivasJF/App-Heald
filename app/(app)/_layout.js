@@ -2,7 +2,18 @@ import { Slot, Redirect } from "expo-router";
 import { useAuth } from "../../src/context/AuthContext";
 import { ActivityIndicator, View, Alert } from "react-native";
 import { useEffect } from "react";
-import * as Location from 'expo-location';
+import * as Location from 'expo-location'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60, // 1min
+      retry: 1,
+    },
+  },
+});
+
 
 export default function RootLayout() {
   const { loading, isAuthenticated } = useAuth();
@@ -36,5 +47,9 @@ export default function RootLayout() {
     return <Redirect href="/(auth)/login" />;
   }
 
-  return <Slot />;
+  return (
+    <QueryClientProvider client={queryClient}>
+      <Slot />
+    </QueryClientProvider>
+  );
 }
