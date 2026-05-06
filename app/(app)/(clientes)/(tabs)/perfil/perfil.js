@@ -4,6 +4,7 @@ import { useAuth } from '../../../../../src/context/AuthContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
 import { useProfile } from '../../../../../src/hooks/auth/useProfile.hook';
+import formattedPhoneNumber from '../../../../../src/utils/formatePhoneNumber';
 
 export default function Perfil() {
   const { signOut } = useAuth();
@@ -18,9 +19,7 @@ export default function Perfil() {
     })
     : 'No disponible';
 
-  const formattedPhoneNumber = profile?.phoneNumber
-    ? profile.phoneNumber.replace(/^\+52\s?/, '').trim()
-    : 'No disponible';
+  const formattedPhone = profile?.phoneNumber ? formattedPhoneNumber(profile.phoneNumber) : 'No disponible';
 
   const getInitials = (name) => {
     if (!name) return '?';
@@ -48,7 +47,7 @@ export default function Perfil() {
           </View>
           <InfoRow icon="user" label="Nombre" value={profile?.name} />
           <InfoRow icon="envelope" label="Email" value={profile?.email} />
-          <InfoRow icon="phone" label="Teléfono" value={formattedPhoneNumber} />
+          <InfoRow icon="phone" label="Teléfono" value={formattedPhone} />
           <InfoRow icon="calendar" label="Fecha de nacimiento" value={formattedBirthDate} />
         </View>
       )}

@@ -4,8 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
 import { useState } from 'react';
 import { cancelAppointment } from '../../../../../src/services/appointmentService';
-
-const CDMX_TIME_ZONE = 'America/Mexico_City';
+import formatDateTime from '../../../../../src/utils/formatDateTime';
+import formatDate from '../../../../../src/utils/formatDate';
 
 export default function CitaDetalle() {
   const router = useRouter();
@@ -30,23 +30,6 @@ export default function CitaDetalle() {
     }
   };
 
-  const formatDateInCDMX = (dateString) => {
-    return new Date(dateString).toLocaleDateString('es-ES', {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    });
-  };
-
-  const formatTimeInCDMX = (dateString) => {
-    return new Date(dateString).toLocaleTimeString('es-ES', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true,
-      timeZone: CDMX_TIME_ZONE,
-    });
-  };
 
   if (!cita) {
     return (
@@ -57,9 +40,9 @@ export default function CitaDetalle() {
   }
 
   // Formato de fecha y hora
-  const appointmentDate = formatDateInCDMX(cita.startTime);
-  const startTime = formatTimeInCDMX(cita.startTime);
-  const endTime = formatTimeInCDMX(cita.endTime);
+  const appointmentDate = formatDate(cita.startTime);
+  const startTime = formatDateTime(cita.startTime);
+  const endTime = formatDateTime(cita.endTime);
   const timeRange = `${startTime} - ${endTime} hrs.`;
 
   // Información del doctor
