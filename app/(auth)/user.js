@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
-import { ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, ImageBackground, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { registerUser } from "../../src/services/userServices";
 
 export default function User() {
@@ -40,49 +40,59 @@ export default function User() {
   };
 
   return (
-    <View style={styles.container}>
-    
-    <Text style={styles.title}>Selecciona tu tipo de usuario</Text>
+    <ImageBackground
+      source={require('../../assets/fondo.jpg')}
+      style={styles.backgroundImage}
+      resizeMode="cover"
+    >
+      <View style={styles.container}>
+      
+        <Text style={styles.title}>Selecciona tu tipo de usuario</Text>
 
-      {/* BOTÓN PACIENTE */}
-    <TouchableOpacity style={styles.button} onPress={() => handleUserTypeSelection('CLIENT')} disabled={loading}>
-        <Text style={styles.buttonText}>Soy Paciente</Text>
-    </TouchableOpacity>
+        {/* BOTÓN PACIENTE */}
+        <TouchableOpacity style={styles.button} onPress={() => handleUserTypeSelection('CLIENT')} disabled={loading}>
+            <Text style={styles.buttonText}>Soy Paciente</Text>
+        </TouchableOpacity>
 
-      {/* BOTÓN DOCTOR */}
-    <TouchableOpacity style={styles.button} onPress={() => handleUserTypeSelection('DOCTOR')} disabled={loading}>
-        <Text style={styles.buttonText}>Soy Doctor</Text>
-    </TouchableOpacity>
+        {/* BOTÓN DOCTOR */}
+        <TouchableOpacity style={styles.button} onPress={() => handleUserTypeSelection('DOCTOR')} disabled={loading}>
+            <Text style={styles.buttonText}>Soy Doctor</Text>
+        </TouchableOpacity>
 
-    {loading && <ActivityIndicator style={{ marginTop: 20 }} size="large" color="#3B82F6" />}
+        {loading && <ActivityIndicator style={{ marginTop: 20 }} size="large" color="#4CAFED" />}
 
-    </View>
-);
+      </View>
+    </ImageBackground>
+  );
 }
 
 const styles = StyleSheet.create({
-container: {
+  backgroundImage: {
+    flex: 1,
+  },
+  container: {
     flex: 1,
     justifyContent: "center",
     padding: 25,
-    backgroundColor: "#F5F5F5",
-},
-title: {
+    backgroundColor: 'rgba(255, 255, 255, 0.7)', // Capa consistente con el login
+  },
+  title: {
     textAlign: "center",
-    fontSize: 22,
-    fontWeight: "700",
+    fontSize: 28,
+    fontWeight: "900",
     marginBottom: 40,
-},
-button: {
-    backgroundColor: "#3B82F6",
+    color: "#072B66", // Azul oscuro de la marca
+  },
+  button: {
+    backgroundColor: "#4CAFED", // Azul claro consistente
     paddingVertical: 15,
     borderRadius: 12,
     marginBottom: 20,
-},
-buttonText: {
+  },
+  buttonText: {
     color: "#FFF",
     fontSize: 18,
     fontWeight: "700",
     textAlign: "center",
-},
+  },
 });

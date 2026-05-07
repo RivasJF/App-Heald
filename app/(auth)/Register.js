@@ -1,7 +1,7 @@
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, ImageBackground, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 export default function Register() {
 
@@ -75,9 +75,17 @@ export default function Register() {
   };
 
   return (
-    <View style={styles.container}>
+    <ImageBackground
+      source={require('../../assets/fondo.jpg')}
+      style={styles.backgroundImage}
+      resizeMode="cover"
+    >
+      <View style={styles.container}>
 
-      <Text style={styles.title}>Registro de Usuario</Text>
+      <Text style={styles.title}>
+        <Text style={styles.welcomeText}>Registro de</Text>{"\n"}
+        <Text style={styles.brandText}>Usuario</Text>
+      </Text>
 
       {/* NOMBRE */}
       <TextInput
@@ -161,28 +169,45 @@ export default function Register() {
         <Text style={styles.backToLogin}>Volver al inicio</Text>
       </TouchableOpacity>
 
-    </View>
+      </View>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
+  backgroundImage: {
+    flex: 1,
+  },
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255, 255, 255, 0.7)', // Capa consistente con login y user
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 20,
   },
 
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
+    textAlign: 'center',
     marginBottom: 30,
   },
 
+  welcomeText: {
+    fontSize: 22,
+    fontWeight: '400',
+    color: '#666666',
+    lineHeight: 28,
+  },
+
+  brandText: {
+    fontSize: 36,
+    fontWeight: '900',
+    color: '#072B66',
+    lineHeight: 42,
+    letterSpacing: -1,
+  },
+
   input: {
-    width: '100%',
+    width: '95%',
     height: 50,
     borderWidth: 1,
     borderColor: '#CCC',
@@ -195,7 +220,7 @@ const styles = StyleSheet.create({
   },
 
   buttonPrimary: {
-    width: '100%',
+    width: '95%',
     height: 50,
     backgroundColor: '#4CAFED',
     borderRadius: 10,
