@@ -1,14 +1,31 @@
-import { createContext, useContext, useMemo, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 
 const ThemeContext = createContext();
 
 export const ThemeProvider = ({ children }) => {
   const [isDarkMode, setIsDarkMode] = useState(false);
 
-  const toggleTheme = () => setIsDarkMode(prev => !prev);
+  // Cargar preferencia guardada al iniciar
+  useEffect(() => {
+    const loadTheme = async () => {
+      const savedTheme = await AsyncStorage.getItem('appTheme');
+      if (savedTheme) {
+        setIsDarkMode(savedTheme === 'dark');
+      }
+    };
+    loadTheme();
+  }, []);
+
+  const toggleTheme = async () => {
+    const newValue = !isDarkMode;
+    setIsDarkMode(newValue);
+    await AsyncStorage.setItem('appTheme', newValue ? 'dark' : 'light');
+  };
 
   const theme = useMemo(() => ({
     isDarkMode,
+    statusBarStyle: isDarkMode ? 'light' : 'dark',
     colors: isDarkMode ? {
       background: '#121A2D', // Azul medianoche oscuro
       card: '#1C263F',       // Azul grisáceo para tarjetas

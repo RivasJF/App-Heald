@@ -287,9 +287,8 @@ export default function CreateClinicScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    backgroundColor: '#fff' 
+  container: {
+    flex: 1,
   },
   loadingContainer: { 
     flex: 1, 
@@ -358,7 +357,6 @@ const styles = StyleSheet.create({
   },
   infoPanel: {
     flex: 1,
-    backgroundColor: '#fff',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     shadowColor: '#000',
