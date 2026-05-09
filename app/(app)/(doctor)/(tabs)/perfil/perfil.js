@@ -1,14 +1,16 @@
-import { Stack, useFocusEffect, useRouter } from 'expo-router';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ScrollView } from 'react-native';
-import { useAuth } from '../../../../../src/context/AuthContext';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
-import { useState, useCallback } from 'react';
+import { Stack, useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useState } from 'react';
+import { ActivityIndicator, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAuth } from '../../../../../src/context/AuthContext';
+import { useTheme } from '../../../../../src/context/ThemeContext';
 import { getDoctorByUserId } from '../../../../../src/services/doctorService';
 
 export default function DoctorProfileScreen() {
   const router = useRouter();
   const { user, signOut } = useAuth();
+  const { isDarkMode, colors, toggleTheme } = useTheme();
   const [doctorProfile, setDoctorProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -44,36 +46,53 @@ export default function DoctorProfileScreen() {
   // Muestra un loader mientras se determina si el perfil existe o no.
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F5F8FF' }}>
-        <ActivityIndicator size="large" color="#3F51B5" />
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors?.background || '#F5F8FF' }}>
+        <ActivityIndicator size="large" color={colors?.primary || "#3F51B5"} />
       </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <Stack.Screen options={{ headerShown: false }} />
       
       <View style={styles.header}>
         <View style={styles.headerRow}>
           <View style={styles.headerSideSpacer} />
-          <Text style={styles.title}>Mi Perfil</Text>
+          <Text style={[styles.title, { color: colors.text }]}>Mi Perfil</Text>
           <TouchableOpacity onPress={fetchDoctorProfile} disabled={loading}>
-            <FontAwesome name="refresh" size={24} color={loading ? '#B0C4DE' : '#072B66'} />
+            <FontAwesome name="refresh" size={24} color={loading ? '#B0C4DE' : colors.text} />
           </TouchableOpacity>
         </View>
-        <Text style={styles.subtitle}>Bienvenido, Dr. {user?.name || '...'}</Text>
+        <Text style={[styles.subtitle, { color: colors.subtitle }]}>Bienvenido, Dr. {user?.name || '...'}</Text>
         {loading ? (
           <ActivityIndicator color="#6B82B1" style={{ alignSelf: 'flex-start', marginTop: 5 }} />
         ) : error ? (
           <Text style={styles.errorText}>{error}</Text>
         ) : (
-          <View style={styles.infoCard}>
-            <InfoRow icon="user-md" label="Nombre" value={`Dr. ${user?.name}`} />
-            <InfoRow icon="envelope-o" label="Email" value={user?.email} />
-            <InfoRow icon="stethoscope" label="Especialidad" value={doctorProfile?.speciality} />
-            <InfoRow icon="info-circle" label="Biografía" value={doctorProfile?.biography} />
-            <StatusRow active={doctorProfile?.serviceStatus?.active} />
+          <View style={[styles.infoCard, { backgroundColor: colors.card, shadowColor: isDarkMode ? '#000' : '#072B66' }]}>
+            <InfoRow icon="user-md" label="Nombre" value={`Dr. ${user?.name}`} colors={colors} />
+            <InfoRow icon="envelope-o" label="Email" value={user?.email} colors={colors} />
+            <InfoRow icon="stethoscope" label="Especialidad" value={doctorProfile?.speciality} colors={colors} />
+            <InfoRow icon="info-circle" label="Biografía" value={doctorProfile?.biography} colors={colors} />
+            <StatusRow active={doctorProfile?.serviceStatus?.active} colors={colors} />
+
+            {/* Selector de Apariencia */}
+            <View style={[styles.infoRow, { justifyContent: 'space-between', marginTop: 10, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 15, marginBottom: 0 }]}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <FontAwesome name="moon-o" size={18} color={colors.primary} style={styles.infoIcon} />
+                <View>
+                  <Text style={[styles.infoLabel, { color: colors.subtitle }]}>Apariencia</Text>
+                  <Text style={[styles.infoValue, { color: colors.text }]}>{isDarkMode ? 'Modo Oscuro' : 'Modo Claro'}</Text>
+                </View>
+              </View>
+              <Switch 
+                value={isDarkMode} 
+                onValueChange={toggleTheme}
+                trackColor={{ false: '#767577', true: colors.primary }}
+                thumbColor={isDarkMode ? colors.white : '#f4f3f4'}
+              />
+            </View>
           </View>
         )}
       </View>
@@ -88,25 +107,25 @@ export default function DoctorProfileScreen() {
   );
 }
 
-const InfoRow = ({ icon, label, value }) => (
+const InfoRow = ({ icon, label, value, colors }) => (
   <View style={styles.infoRow}>
-    <FontAwesome name={icon} size={18} color="#4B6AA3" style={styles.infoIcon} />
+    <FontAwesome name={icon} size={18} color={colors.primary} style={styles.infoIcon} />
     <View>
-      <Text style={styles.infoLabel}>{label}</Text>
-      <Text style={styles.infoValue}>{value || 'No disponible'}</Text>
+      <Text style={[styles.infoLabel, { color: colors.subtitle }]}>{label}</Text>
+      <Text style={[styles.infoValue, { color: colors.text }]}>{value || 'No disponible'}</Text>
     </View>
   </View>
 );
 
-const StatusRow = ({ active }) => {
+const StatusRow = ({ active, colors }) => {
   const statusText = active ? 'Activo' : 'Inactivo';
   const statusColor = active ? '#28A745' : '#DC3545'; // Verde para activo, Rojo para inactivo
 
   return (
     <View style={styles.infoRow}>
-      <FontAwesome name="power-off" size={18} color="#4B6AA3" style={styles.infoIcon} />
+      <FontAwesome name="power-off" size={18} color={colors.primary} style={styles.infoIcon} />
       <View>
-        <Text style={styles.infoLabel}>Estado del Servicio</Text>
+        <Text style={[styles.infoLabel, { color: colors.subtitle }]}>Estado del Servicio</Text>
         <Text style={[styles.statusValue, { color: statusColor }]}>{statusText}</Text>
       </View>
     </View>

@@ -1,11 +1,12 @@
-import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 // Usamos Leaflet dentro de WebView en lugar de react-native-maps
-import * as Location from "expo-location";
-import { useEffect, useState, useRef } from "react";
-import { View, StyleSheet, Text, ActivityIndicator, TouchableOpacity, Alert, Platform, Linking, Dimensions } from "react-native";
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { createClinic, updateClinic } from '../../../../../src/services/clinicService';
 import Constants from 'expo-constants';
+import * as Location from "expo-location";
+import { useEffect, useRef, useState } from "react";
+import { ActivityIndicator, Alert, Dimensions, Linking, Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTheme } from '../../../../../src/context/ThemeContext';
+import { createClinic, updateClinic } from '../../../../../src/services/clinicService';
 
 const INITIAL_DELTA = 0.005;
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -15,6 +16,7 @@ export default function UbicacionConsultorioScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   // Si viene 'clinic', estamos en modo edición. Si no, es creación.
+  const { colors, isDarkMode } = useTheme();
   const clinicToEdit = params.clinic ? JSON.parse(params.clinic) : null;
   const doctorId = clinicToEdit ? clinicToEdit.doctorId : params.doctorId;
 
@@ -174,15 +176,15 @@ export default function UbicacionConsultorioScreen() {
 
   if (isLoading || !location) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#3F51B5" />
-        <Text style={{ marginTop: 10 }}>Cargando mapa...</Text>
+      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={{ marginTop: 10, color: colors.text }}>Cargando mapa...</Text>
       </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <Stack.Screen options={{ title: clinicToEdit ? 'Actualizar Consultorio' : 'Registrar Consultorio', headerShown: false }} />
       <View style={styles.mapContainer}>
         {(() => {
@@ -195,7 +197,7 @@ export default function UbicacionConsultorioScreen() {
           }
 
           if (WebView) {
-            const osmHtml = `<!doctype html><html><head><meta name="viewport" content="initial-scale=1.0, maximum-scale=1.0"/><link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/><style>html,body,#map{height:100%;margin:0;padding:0} .leaflet-container{background:#fff}</style></head><body><div id="map"></div><script src="https://unpkg.com/leaflet/dist/leaflet.js"></script><script> (function(){try{var lat=${location.latitude}, lng=${location.longitude}; var map=L.map('map').setView([lat,lng],15); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19, attribution:'© OpenStreetMap contributors'}).addTo(map); var marker=L.marker([lat,lng],{draggable:true}).addTo(map); marker.on('dragend', function(e){ var p=e.target.getLatLng(); try{ window.ReactNativeWebView.postMessage(JSON.stringify({lat:p.lat,lng:p.lng})); }catch(err){} }); map.on('click', function(e){ try{ marker.setLatLng(e.latlng); window.ReactNativeWebView.postMessage(JSON.stringify({lat:e.latlng.lat,lng:e.latlng.lng})); }catch(err){} }); window.centerOn = function(lat,lng){ try{ map.setView([lat,lng],15); marker.setLatLng([lat,lng]); }catch(err){} }; }catch(err){ console.error(err);} })();</script></body></html>`;
+            const osmHtml = `<!doctype html><html><head><meta name="viewport" content="initial-scale=1.0, maximum-scale=1.0"/><link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/><style>html,body,#map{height:100%;margin:0;padding:0} .leaflet-container{background:${colors.background}}</style></head><body><div id="map"></div><script src="https://unpkg.com/leaflet/dist/leaflet.js"></script><script> (function(){try{var lat=${location.latitude}, lng=${location.longitude}; var map=L.map('map').setView([lat,lng],15); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19, attribution:'© OpenStreetMap contributors'}).addTo(map); var marker=L.marker([lat,lng],{draggable:true}).addTo(map); marker.on('dragend', function(e){ var p=e.target.getLatLng(); try{ window.ReactNativeWebView.postMessage(JSON.stringify({lat:p.lat,lng:p.lng})); }catch(err){} }); map.on('click', function(e){ try{ marker.setLatLng(e.latlng); window.ReactNativeWebView.postMessage(JSON.stringify({lat:e.latlng.lat,lng:e.latlng.lng})); }catch(err){} }); window.centerOn = function(lat,lng){ try{ map.setView([lat,lng],15); marker.setLatLng([lat,lng]); }catch(err){} }; }catch(err){ console.error(err);} })();</script></body></html>`;
 
             return (
               <>
@@ -224,7 +226,7 @@ export default function UbicacionConsultorioScreen() {
                 />
 
                 <TouchableOpacity
-                  style={styles.centerButton}
+                  style={[styles.centerButton, { backgroundColor: colors.card }]}
                   onPress={() => {
                     if (webviewRef.current && location) {
                       const js = `window.centerOn(${location.latitude}, ${location.longitude});true;`;
@@ -232,15 +234,15 @@ export default function UbicacionConsultorioScreen() {
                     }
                   }}
                 >
-                  <Text style={styles.centerButtonText}>Centrar</Text>
+                  <Text style={[styles.centerButtonText, { color: colors.text }]}>Centrar</Text>
                 </TouchableOpacity>
               </>
             );
           }
 
           return (
-            <View style={styles.mapPlaceholder}>
-              <Text style={{ textAlign: 'center', color: '#072B66', marginBottom: 12 }}>Mapa no disponible: falta WebView o falla al cargar.</Text>
+            <View style={[styles.mapPlaceholder, { backgroundColor: colors.background }]}>
+              <Text style={{ textAlign: 'center', color: colors.text, marginBottom: 12 }}>Mapa no disponible: falta WebView o falla al cargar.</Text>
               <TouchableOpacity style={styles.refreshButton} onPress={async () => {
                 const geoUrl = `geo:${location.latitude},${location.longitude}?q=${location.latitude},${location.longitude}`;
                 const webUrl = `https://www.google.com/maps/search/?api=1&query=${location.latitude},${location.longitude}`;
@@ -253,19 +255,19 @@ export default function UbicacionConsultorioScreen() {
           );
         })()}
       </View>
-      <View style={styles.infoPanel}>
+      <View style={[styles.infoPanel, { backgroundColor: colors.card }]}>
         <View style={styles.infoPanelContent}>
           <View style={styles.addressContainer}>
-            <Text style={styles.addressText}>📍 {address}</Text>
-            <Text style={styles.coordsText}>Lat: {location.latitude.toFixed(5)}, Lng: {location.longitude.toFixed(5)}</Text>
+            <Text style={[styles.addressText, { color: colors.text }]}>📍 {address}</Text>
+            <Text style={[styles.coordsText, { color: colors.subtitle }]}>Lat: {location.latitude.toFixed(5)}, Lng: {location.longitude.toFixed(5)}</Text>
           </View>
 
           <View style={styles.buttonContainer}>
-            <TouchableOpacity style={styles.refreshButton} onPress={handleRefreshLocation} disabled={isLoading}>
-              <Text style={styles.refreshButtonText}>{isLoading ? '🔄 Actualizando...' : '🔄 Actualizar'}</Text>
+            <TouchableOpacity style={[styles.refreshButton, { backgroundColor: isDarkMode ? colors.border : '#E8EFF9' }]} onPress={handleRefreshLocation} disabled={isLoading}>
+              <Text style={[styles.refreshButtonText, { color: colors.primary }]}>{isLoading ? '🔄 Actualizando...' : '🔄 Actualizar'}</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.saveButton, isSaving && styles.disabledButton]}
+              style={[styles.saveButton, { backgroundColor: colors.primary }, isSaving && styles.disabledButton]}
               onPress={handleSaveLocation}
               disabled={isSaving}
             >

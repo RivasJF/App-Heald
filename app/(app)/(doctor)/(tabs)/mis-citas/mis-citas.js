@@ -1,11 +1,12 @@
-import { Stack, useRouter, useFocusEffect } from 'expo-router';
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { FontAwesome } from '@expo/vector-icons';
+import { Stack, useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useMemo, useState } from 'react';
+import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useState, useCallback, useMemo } from 'react';
 import { useAuth } from '../../../../../src/context/AuthContext';
+import { useTheme } from '../../../../../src/context/ThemeContext';
 import { findByDoctor } from '../../../../../src/services/appointmentService';
 import { getDoctorByUserId } from '../../../../../src/services/doctorService';
-import { FontAwesome } from '@expo/vector-icons';
 
 const PAGE_SIZE = 5;
 const CDMX_TIME_ZONE = 'America/Mexico_City';
@@ -13,6 +14,7 @@ const CDMX_TIME_ZONE = 'America/Mexico_City';
 export default function DoctorAppointmentsScreen() {
   const router = useRouter();
   const { user } = useAuth();
+  const { colors, isDarkMode } = useTheme();
   const [allCitas, setAllCitas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -124,50 +126,50 @@ export default function DoctorAppointmentsScreen() {
     const patientName = item.patient?.name || 'Paciente no asignado';
 
     return (
-      <TouchableOpacity
-        style={styles.card}
+      <TouchableOpacity 
+        style={[styles.card, { backgroundColor: colors.card, shadowColor: isDarkMode ? '#000' : '#072B66' }]}
         activeOpacity={0.8}
         onPress={() => router.push({
           pathname: `/(app)/(doctor)/(tabs)/mis-citas/${item.id}`,
           params: { cita: JSON.stringify(item) }
         })}
       >
-        <View style={styles.cardIcon}>
-          <FontAwesome name="user-o" size={24} color="#3F51B5" />
+        <View style={[styles.cardIcon, { backgroundColor: isDarkMode ? colors.border : '#E8EAF6' }]}>
+          <FontAwesome name="user-o" size={24} color={colors.primary} />
         </View>
         <View style={styles.cardBody}>
-          <Text style={styles.cardTitle}>{patientName}</Text>
-          <Text style={styles.cardSubtitle}>{`${fecha} a las ${hora}`}</Text>
+          <Text style={[styles.cardTitle, { color: colors.text }]}>{patientName}</Text>
+          <Text style={[styles.cardSubtitle, { color: colors.subtitle }]}>{`${fecha} a las ${hora}`}</Text>
         </View>
-        <FontAwesome name="angle-right" size={24} color="#B0C4DE" />
+        <FontAwesome name="angle-right" size={24} color={isDarkMode ? colors.subtitle : "#B0C4DE"} />
       </TouchableOpacity>
     );
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <Stack.Screen options={{ headerShown: false }} />
-      <Text style={styles.title}>Mis Citas</Text>
+      <Text style={[styles.title, { color: colors.text }]}>Mis Citas</Text>
 
-      <View style={styles.filterContainer}>
+      <View style={[styles.filterContainer, { backgroundColor: isDarkMode ? colors.border : '#E8EAF6' }]}>
         <TouchableOpacity
-          style={[styles.filterButton, filter === 'proximas' && styles.filterButtonActive]}
+          style={[styles.filterButton, filter === 'proximas' && [styles.filterButtonActive, { backgroundColor: colors.card }]]}
           onPress={() => handleFilterChange('proximas')}
         >
-          <Text style={[styles.filterText, filter === 'proximas' && styles.filterTextActive]}>Próximas</Text>
+          <Text style={[styles.filterText, { color: colors.primary }, filter === 'proximas' && { fontWeight: '800' }]}>Próximas</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.filterButton, filter === 'pasadas' && styles.filterButtonActive]}
+          style={[styles.filterButton, filter === 'pasadas' && [styles.filterButtonActive, { backgroundColor: colors.card }]]}
           onPress={() => handleFilterChange('pasadas')}
         >
-          <Text style={[styles.filterText, filter === 'pasadas' && styles.filterTextActive]}>Pasadas</Text>
+          <Text style={[styles.filterText, { color: colors.primary }, filter === 'pasadas' && { fontWeight: '800' }]}>Pasadas</Text>
         </TouchableOpacity>
       </View>
 
       {loading ? (
-        <ActivityIndicator size="large" color="#3F51B5" style={{ marginTop: 30 }} />
+        <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 30 }} />
       ) : error ? (
-        <Text style={styles.errorText}>{error}</Text>
+        <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
       ) : (
         <View style={styles.listWrapper}>
           <FlatList
@@ -175,26 +177,26 @@ export default function DoctorAppointmentsScreen() {
             renderItem={renderItem}
             keyExtractor={(item) => item.id}
             contentContainerStyle={{ paddingTop: 10 }}
-            ListEmptyComponent={<Text style={styles.emptyText}>No tienes citas en esta categoría.</Text>}
+            ListEmptyComponent={<Text style={[styles.emptyText, { color: colors.subtitle }]}>No tienes citas en esta categoría.</Text>}
           />
 
           <View style={styles.paginationContainer}>
             <TouchableOpacity
-              style={[styles.paginationButton, page === 1 && styles.paginationButtonDisabled]}
+              style={[styles.paginationButton, { backgroundColor: colors.primary }, page === 1 && [styles.paginationButtonDisabled, { backgroundColor: isDarkMode ? colors.border : '#B0C4DE' }]]}
               onPress={() => setPage((prev) => Math.max(1, prev - 1))}
               disabled={page === 1 || loading}
             >
-              <Text style={[styles.paginationButtonText, page === 1 && styles.paginationButtonTextDisabled]}>Anterior</Text>
+              <Text style={[styles.paginationButtonText, { color: colors.white }, page === 1 && [styles.paginationButtonTextDisabled, { color: isDarkMode ? colors.subtitle : '#EAF1FF' }]]}>Anterior</Text>
             </TouchableOpacity>
 
-            <Text style={styles.pageText}>Página {Math.min(page, totalPages)}</Text>
+            <Text style={[styles.pageText, { color: colors.text }]}>Página {Math.min(page, totalPages)} de {totalPages}</Text>
 
             <TouchableOpacity
-              style={[styles.paginationButton, !hasNextPage && styles.paginationButtonDisabled]}
+              style={[styles.paginationButton, { backgroundColor: colors.primary }, !hasNextPage && [styles.paginationButtonDisabled, { backgroundColor: isDarkMode ? colors.border : '#B0C4DE' }]]}
               onPress={() => setPage((prev) => prev + 1)}
               disabled={!hasNextPage || loading}
             >
-              <Text style={[styles.paginationButtonText, !hasNextPage && styles.paginationButtonTextDisabled]}>Siguiente</Text>
+              <Text style={[styles.paginationButtonText, { color: colors.white }, !hasNextPage && [styles.paginationButtonTextDisabled, { color: isDarkMode ? colors.subtitle : '#EAF1FF' }]]}>Siguiente</Text>
             </TouchableOpacity>
           </View>
         </View>

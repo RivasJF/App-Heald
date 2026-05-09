@@ -1,15 +1,17 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
+import { FontAwesome } from '@expo/vector-icons';
 import { Stack, useRouter } from 'expo-router';
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../../../../src/context/AuthContext';
-import { getDoctorByUserId } from '../../../../../src/services/doctorService';
+import { useTheme } from '../../../../../src/context/ThemeContext';
 import { getClinicByDoctorId } from '../../../../../src/services/clinicService';
-import { FontAwesome } from '@expo/vector-icons';
+import { getDoctorByUserId } from '../../../../../src/services/doctorService';
 
 export default function Consultorio() {
   const router = useRouter();
   const { user } = useAuth();
+  const { colors, isDarkMode } = useTheme();
 
   const [clinic, setClinic] = useState(null);
   const [doctorProfile, setDoctorProfile] = useState(null);
@@ -48,47 +50,47 @@ export default function Consultorio() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#3F51B5" />
-        <Text style={{ marginTop: 10 }}>Cargando datos del consultorio...</Text>
+      <SafeAreaView style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={{ marginTop: 10, color: colors.text }}>Cargando datos del consultorio...</Text>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <Stack.Screen options={{ headerShown: false }} />
 
       <ScrollView>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Text style={styles.backButtonText}>← Panel de Control</Text>
+          <Text style={[styles.backButtonText, { color: colors.primary }]}>← Panel de Control</Text>
         </TouchableOpacity>
 
-        <Text style={styles.title}>Mi Consultorio</Text>
+        <Text style={[styles.title, { color: colors.text }]}>Mi Consultorio</Text>
 
         {error && <Text style={styles.errorText}>{error}</Text>}
 
         {clinicExists ? (
           <>
-            <View style={styles.infoCard}>
-              <InfoRow icon="map-marker" label="Dirección Completa" value={clinic?.address} />
-              <InfoRow icon="compass" label="Coordenadas (Lat, Lng)" value={clinic ? `${clinic.latitude}, ${clinic.longitude}` : 'No disponible'} />
+            <View style={[styles.infoCard, { backgroundColor: colors.card, shadowColor: isDarkMode ? '#000' : '#072B66' }]}>
+              <InfoRow icon="map-marker" label="Dirección Completa" value={clinic?.address} colors={colors} />
+              <InfoRow icon="compass" label="Coordenadas (Lat, Lng)" value={clinic ? `${clinic.latitude}, ${clinic.longitude}` : 'No disponible'} colors={colors} />
             </View>
             <TouchableOpacity
-              style={styles.editButton}
+              style={[styles.editButton, { borderColor: colors.primary }]}
               onPress={() => router.push({
                 pathname: '/(app)/(doctor)/estatus/ubicacion-consultorio',
                 params: { clinic: JSON.stringify(clinic) }
               })}
             >
-              <Text style={styles.editButtonText}>Actualizar Ubicación</Text>
+              <Text style={[styles.editButtonText, { color: colors.primary }]}>Actualizar Ubicación</Text>
             </TouchableOpacity>
           </>
         ) : (
-          <View style={styles.noClinicContainer}>
-            <Text style={styles.noClinicText}>Aún no has registrado un consultorio.</Text>
+          <View style={[styles.noClinicContainer, { backgroundColor: colors.card }]}>
+            <Text style={[styles.noClinicText, { color: colors.subtitle }]}>Aún no has registrado un consultorio.</Text>
             <TouchableOpacity
-              style={styles.createButton}
+              style={[styles.createButton, { backgroundColor: colors.primary }]}
               onPress={() => router.push({ pathname: '/(app)/(doctor)/crear-consultorio', params: { doctorId: doctorProfile.id } })}
             >
               <Text style={styles.createButtonText}>Registrar Mi Consultorio</Text>
@@ -100,33 +102,30 @@ export default function Consultorio() {
   );
 }
 
-const InfoRow = ({ icon, label, value }) => (
+const InfoRow = ({ icon, label, value, colors }) => (
   <View style={styles.infoRow}>
-    <FontAwesome name={icon} size={20} color="#4B6AA3" style={styles.infoIcon} />
+    <FontAwesome name={icon} size={20} color={colors.primary} style={styles.infoIcon} />
     <View style={styles.infoTextContainer}>
-      <Text style={styles.infoLabel}>{label}</Text>
-      <Text style={styles.infoValue}>{value || 'No disponible'}</Text>
+      <Text style={[styles.infoLabel, { color: colors.subtitle }]}>{label}</Text>
+      <Text style={[styles.infoValue, { color: colors.text }]}>{value || 'No disponible'}</Text>
     </View>
   </View>
 );
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 24, backgroundColor: '#F5F8FF' },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: "#F5F8FF" },
+  container: { flex: 1, padding: 24 },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   backButton: { alignSelf: 'flex-start', marginBottom: 10 },
-  backButtonText: { color: '#3F51B5', fontSize: 16, fontWeight: "700" },
+  backButtonText: { fontSize: 16, fontWeight: "700" },
   title: {
     fontSize: 28,
     fontWeight: '800',
-    color: '#072B66',
     marginBottom: 20,
     textAlign: 'center',
   },
   infoCard: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 20,
-    shadowColor: '#072B66',
     shadowOpacity: 0.08,
     shadowRadius: 10,
     elevation: 5,
@@ -134,8 +133,8 @@ const styles = StyleSheet.create({
   infoRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 20 },
   infoIcon: { width: 25, marginRight: 15, marginTop: 3 },
   infoTextContainer: { flex: 1 },
-  infoLabel: { fontSize: 13, color: '#6B82B1', marginBottom: 4 },
-  infoValue: { fontSize: 16, color: '#072B66', fontWeight: '600', lineHeight: 22 },
+  infoLabel: { fontSize: 13, marginBottom: 4 },
+  infoValue: { fontSize: 16, fontWeight: '600', lineHeight: 22 },
   errorText: {
     textAlign: 'center',
     color: '#D32F2F',
@@ -146,18 +145,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 30,
-    backgroundColor: '#fff',
     borderRadius: 12,
     marginTop: 20,
   },
   noClinicText: {
-    fontSize: 16,
-    color: '#6B82B1',
     textAlign: 'center',
     marginBottom: 20,
   },
   createButton: {
-    backgroundColor: '#3F51B5',
     paddingVertical: 12,
     paddingHorizontal: 25,
     borderRadius: 10,
@@ -169,15 +164,12 @@ const styles = StyleSheet.create({
   },
   editButton: {
     marginTop: 20,
-    backgroundColor: '#fff',
     paddingVertical: 12,
     paddingHorizontal: 25,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#3F51B5',
   },
   editButtonText: {
-    color: '#3F51B5',
     fontSize: 16,
     fontWeight: 'bold',
     textAlign: 'center',

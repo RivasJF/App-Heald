@@ -1,16 +1,18 @@
-import { Stack, Link, useRouter } from 'expo-router';
-import { View, Text, StyleSheet, TouchableOpacity, Switch, Alert, ScrollView, Platform } from 'react-native';
+import { FontAwesome } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { Link, Stack, useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { Alert, Platform, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../../../../src/context/AuthContext';
-import { FontAwesome } from '@expo/vector-icons';
-import { useState, useEffect } from 'react';
+import { useTheme } from '../../../../../src/context/ThemeContext';
 import { getDoctorByUserId } from '../../../../../src/services/doctorService';
-import { updateDoctorStatus, setDailyClosure, setDayOff  } from '../../../../../src/services/statusService';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import { setDailyClosure, setDayOff, updateDoctorStatus } from '../../../../../src/services/statusService';
 
 export default function DoctorStatusScreen() {
   const router = useRouter();
   const { user } = useAuth();
+  const { colors, isDarkMode } = useTheme();
   const [isActive, setIsActive] = useState(false);
   const [doctorProfile, setDoctorProfile] = useState(null);
   const [isEmergencyPickerVisible, setIsEmergencyPickerVisible] = useState(false);
@@ -141,22 +143,22 @@ export default function DoctorStatusScreen() {
   ];
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <Stack.Screen options={{ headerShown: false }} />
-      <Text style={styles.title}>Panel de Control</Text>
+      <Text style={[styles.title, { color: colors.text }]}>Panel de Control</Text>
 
       <ScrollView>
         {/* 1. Control General */}
-        <View style={styles.card}>
+        <View style={[styles.card, { backgroundColor: colors.card, shadowColor: isDarkMode ? '#000' : '#072B66' }]}>
           <View style={styles.switchContainer}>
             <View>
-              <Text style={styles.switchLabel}>Servicio en Línea</Text>
-              <Text style={styles.switchSubLabel}>
+              <Text style={[styles.switchLabel, { color: colors.text }]}>Servicio en Línea</Text>
+              <Text style={[styles.switchSubLabel, { color: colors.subtitle }]}>
                 {isActive ? 'Estás aceptando citas' : 'No estás aceptando citas'}
               </Text>
             </View>
             <Switch
-              trackColor={{ false: '#CFD8DC', true: '#81C784' }}
+              trackColor={{ false: isDarkMode ? '#2D3748' : '#CFD8DC', true: '#81C784' }}
               thumbColor={"#FFFFFF"}
               value={isActive}
               onValueChange={handleStatusChange}
@@ -165,16 +167,16 @@ export default function DoctorStatusScreen() {
         </View>
 
         {/* 2. Menú de Configuración */}
-        <View style={styles.menuContainer}>
+        <View style={[styles.menuContainer, { backgroundColor: colors.card, shadowColor: isDarkMode ? '#000' : '#072B66' }]}>
           {menuItems.map((item) => (
             <Link key={item.href} href={item.href} asChild>
-              <TouchableOpacity style={styles.menuButton}>
-                <FontAwesome name={item.icon} size={22} color="#3F51B5" style={styles.icon} />
+              <TouchableOpacity style={[styles.menuButton, { borderBottomColor: colors.border }]}>
+                <FontAwesome name={item.icon} size={22} color={colors.primary} style={styles.icon} />
                 <View style={styles.menuTextContainer}>
-                  <Text style={styles.menuButtonText}>{item.label}</Text>
-                  <Text style={styles.menuButtonDescription}>{item.description}</Text>
+                  <Text style={[styles.menuButtonText, { color: colors.text }]}>{item.label}</Text>
+                  <Text style={[styles.menuButtonDescription, { color: colors.subtitle }]}>{item.description}</Text>
                 </View>
-                <FontAwesome name="angle-right" size={24} color="#B0C4DE" />
+                <FontAwesome name="angle-right" size={24} color={isDarkMode ? colors.subtitle : "#B0C4DE"} />
               </TouchableOpacity>
             </Link>
           ))}
@@ -182,11 +184,11 @@ export default function DoctorStatusScreen() {
 
         {/* Botón para marcar día libre */}
         <TouchableOpacity
-          style={styles.dayOffButton}
+          style={[styles.dayOffButton, { backgroundColor: isDarkMode ? colors.card : '#E8EAF6', borderColor: colors.border }]}
           onPress={() => setIsDayOffPickerVisible(true)}
         >
-          <FontAwesome name="calendar-times-o" size={20} color="#3F51B5" />
-          <Text style={styles.dayOffButtonText}>Marcar Día No Laborable</Text>
+          <FontAwesome name="calendar-times-o" size={20} color={colors.primary} />
+          <Text style={[styles.dayOffButtonText, { color: colors.primary }]}>Marcar Día No Laborable</Text>
         </TouchableOpacity>
 
         {/* 3. Acciones de Emergencia */}
@@ -219,13 +221,11 @@ export default function DoctorStatusScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 24, backgroundColor: '#F5F8FF' },
-  title: { fontSize: 28, fontWeight: '800', color: '#072B66', marginBottom: 20 , textAlign:'center'},
+  container: { flex: 1, padding: 24 },
+  title: { fontSize: 28, fontWeight: '800', marginBottom: 20 , textAlign:'center'},
   card: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 20,
-    shadowColor: '#072B66',
     shadowOpacity: 0.08,
     shadowRadius: 10,
     elevation: 5,
@@ -235,13 +235,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: 'space-between',
   },
-  switchLabel: { fontSize: 16, fontWeight: "700", color: '#072B66' },
-  switchSubLabel: { fontSize: 13, color: '#6B82B1', marginTop: 2 },
+  switchLabel: { fontSize: 16, fontWeight: "700" },
+  switchSubLabel: { fontSize: 13, marginTop: 2 },
   menuContainer: {
     marginTop: 24,
-    backgroundColor: '#FFFFFF',
     borderRadius: 12,
-    shadowColor: '#072B66',
     shadowOpacity: 0.08,
     shadowRadius: 10,
     elevation: 5,
@@ -253,12 +251,11 @@ const styles = StyleSheet.create({
     paddingVertical: 18,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F4F8',
   },
   icon: { width: 30, textAlign: 'center' },
   menuTextContainer: { flex: 1, marginLeft: 15 },
-  menuButtonText: { fontSize: 16, color: '#072B66', fontWeight: '600' },
-  menuButtonDescription: { fontSize: 12, color: '#7A93C7', marginTop: 2 },
+  menuButtonText: { fontSize: 16, fontWeight: '600' },
+  menuButtonDescription: { fontSize: 12, marginTop: 2 },
   emergencyButton: {
     marginTop: 30,
     backgroundColor: '#EF5350',
@@ -283,17 +280,14 @@ const styles = StyleSheet.create({
   },
   dayOffButton: {
     marginTop: 20,
-    backgroundColor: '#E8EAF6',
     padding: 15,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
     borderWidth: 1,
-    borderColor: '#C5CAE9',
   },
   dayOffButtonText: {
-    color: '#3F51B5',
     fontWeight: '700',
     fontSize: 16,
     marginLeft: 10,
