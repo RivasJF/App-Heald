@@ -6,6 +6,7 @@ import { ActivityIndicator, ScrollView, StyleSheet, Switch, Text, TouchableOpaci
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../../../../src/context/AuthContext';
 import { useTheme } from '../../../../../src/context/ThemeContext';
+import { findByDoctor } from '../../../../../src/services/appointmentService';
 import { getDoctorByUserId } from '../../../../../src/services/doctorService';
 
 export default function DoctorProfileScreen() {
@@ -13,6 +14,7 @@ export default function DoctorProfileScreen() {
   const { user, signOut } = useAuth();
   const { isDarkMode, colors, toggleTheme, statusBarStyle } = useTheme();
   const [doctorProfile, setDoctorProfile] = useState(null);
+  const [stats, setStats] = useState({ appointments: 0, patients: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -22,6 +24,21 @@ export default function DoctorProfileScreen() {
         setLoading(true);
         const profileData = await getDoctorByUserId(user.id);
         setDoctorProfile(profileData);
+
+        // Obtener estadísticas de citas y pacientes
+        if (profileData?.id) {
+          const appointmentsData = await findByDoctor(profileData.id);
+          const appointmentsList = Array.isArray(appointmentsData) ? appointmentsData : [];
+          
+          // Calcular pacientes únicos
+          const uniquePatients = new Set(appointmentsList.map(a => a.patientId || a.patient?.id));
+          
+          setStats({
+            appointments: appointmentsList.length,
+            patients: uniquePatients.size
+          });
+        }
+
         setError(null);
       } catch (e) {
         // Si el doctor no tiene perfil (404), lo redirigimos a la pantalla de creación.
@@ -89,9 +106,9 @@ export default function DoctorProfileScreen() {
               borderWidth: isDarkMode ? 1 : 0,
               borderColor: colors.border
             }]}>
-            <StatItem label="Citas" value="--" icon="calendar" colors={colors} />
+            <StatItem label="Citas" value={stats.appointments.toString()} icon="calendar" colors={colors} />
             <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
-            <StatItem label="Pacientes" value="--" icon="users" colors={colors} />
+            <StatItem label="Pacientes" value={stats.patients.toString()} icon="users" colors={colors} />
             <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
             <StatItem label="Rating" value="5.0" icon="star" colors={colors} />
           </View>

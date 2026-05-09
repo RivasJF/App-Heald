@@ -1,14 +1,17 @@
-import { StyleSheet, Text, View, TouchableOpacity, ActivityIndicator, SectionList } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
 import { useContext, useEffect, useState } from 'react';
-import { CitaContext } from './+context/CitaContext';
+import { ActivityIndicator, SectionList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTheme } from '../../../../../src/context/ThemeContext';
 import { getNearbyClinicsPagination } from '../../../../../src/services/clinicService';
+import { CitaContext } from './+context/CitaContext';
 
 const PAGE_SIZE = 10;
 
 export default function DoctorScreen() {
   const router = useRouter();
+  const { colors, isDarkMode, statusBarStyle } = useTheme();
   const { selectedDoctor, setSelectedDoctor, resetCita, selectedLocation } = useContext(CitaContext);
   
   const [activeDoctors, setActiveDoctors] = useState([]);
@@ -110,20 +113,26 @@ export default function DoctorScreen() {
   const renderDoctorCard = ({ item: doctor }) => (
     <TouchableOpacity
       key={doctor.id}
-      style={[styles.card, selectedDoctor?.id === doctor.id && styles.cardSelected]}
+      style={[
+        styles.card, 
+        { backgroundColor: colors.card, shadowColor: isDarkMode ? '#000' : '#072B66', borderWidth: isDarkMode ? 1 : 0, borderColor: colors.border },
+        selectedDoctor?.id === doctor.id && { borderColor: colors.primary, borderWidth: 2 }
+      ]}
       onPress={() => handleSelectDoctor(doctor)}
       activeOpacity={0.92}
     >
       <View style={{ flex: 1 }}>
-        <Text style={styles.cardTitle}>{doctor.name}</Text>
-        <Text style={styles.cardSubtitle}>{doctor.specialty} - {doctor.biography}</Text>
-        <Text style={styles.addressText}>{doctor.address}</Text>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>{doctor.name}</Text>
+        <Text style={[styles.cardSubtitle, { color: colors.subtitle }]}>{doctor.specialty} - {doctor.biography}</Text>
+        <Text style={[styles.addressText, { color: colors.subtitle }]}>{doctor.address}</Text>
         
         <View style={styles.rowBetween}>
-          <Text style={styles.distanceText}>{(doctor.distance / 1000).toFixed(1)} km de distancia</Text>
+          <View style={[styles.distanceBadge, { backgroundColor: isDarkMode ? colors.border : '#EEF4FF' }]}>
+            <Text style={[styles.distanceText, { color: colors.primary }]}>{(doctor.distance / 1000).toFixed(1)} km</Text>
+          </View>
 
           <TouchableOpacity disabled={!doctor.active} onPress={() => handleSelectDoctor(doctor)}>
-            <Text style={styles.selectText}>Ver horarios →</Text>
+            <Text style={[styles.selectText, { color: colors.primary }]}>Ver horarios →</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -137,10 +146,10 @@ export default function DoctorScreen() {
 
   const renderContent = () => {
     if (isLoading) {
-      return <ActivityIndicator size="large" color="#0B4EF2" style={{ marginTop: 50 }} />;
+      return <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 50 }} />;
     }
     if (error) {
-      return <Text style={styles.errorText}>{error}</Text>;
+      return <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>;
     }
     return (
       <View style={styles.listWrapper}>
@@ -148,30 +157,30 @@ export default function DoctorScreen() {
           sections={sections}
           renderItem={renderDoctorCard}
           renderSectionHeader={({ section: { title } }) => (
-            <Text style={styles.sectionHeader}>{title}</Text>
+            <Text style={[styles.sectionHeader, { color: colors.subtitle, backgroundColor: colors.background }]}>{title}</Text>
           )}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContainer}
-          ListEmptyComponent={<Text style={styles.emptyText}>No se encontraron doctores en esta área.</Text>}
+          ListEmptyComponent={<Text style={[styles.emptyText, { color: colors.subtitle }]}>No se encontraron doctores en esta área.</Text>}
         />
 
         <View style={styles.paginationContainer}>
           <TouchableOpacity
-            style={[styles.paginationButton, page === 1 && styles.paginationButtonDisabled]}
+            style={[styles.paginationButton, { backgroundColor: colors.primary }, page === 1 && styles.paginationButtonDisabled]}
             onPress={handlePrevPage}
             disabled={page === 1 || isLoading}
           >
-            <Text style={[styles.paginationButtonText, page === 1 && styles.paginationButtonTextDisabled]}>Anterior</Text>
+            <Text style={[styles.paginationButtonText, { color: colors.white }]}>Anterior</Text>
           </TouchableOpacity>
 
-          <Text style={styles.pageText}>Página {page}</Text>
+          <Text style={[styles.pageText, { color: colors.text }]}>Página {page}</Text>
 
           <TouchableOpacity
-            style={[styles.paginationButton, !hasNextPage && styles.paginationButtonDisabled]}
+            style={[styles.paginationButton, { backgroundColor: colors.primary }, !hasNextPage && styles.paginationButtonDisabled]}
             onPress={handleNextPage}
             disabled={!hasNextPage || isLoading}
           >
-            <Text style={[styles.paginationButtonText, !hasNextPage && styles.paginationButtonTextDisabled]}>Siguiente</Text>
+            <Text style={[styles.paginationButtonText, { color: colors.white }]}>Siguiente</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -179,13 +188,14 @@ export default function DoctorScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]}>
       <Stack.Screen options={{ title: 'Selecciona un doctor', headerShown: false }} />
+      <StatusBar style={statusBarStyle} />
 
       <View style={[styles.headerRow, { marginBottom: 10 }]}>
-        <Text style={styles.sectionTitle}>Doctores disponibles</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>Doctores disponibles</Text>
         <TouchableOpacity onPress={handleCancel}>
-          <Text style={styles.linkText}>Cancelar</Text>
+          <Text style={[styles.linkText, { color: colors.primary }]}>Cancelar</Text>
         </TouchableOpacity>
       </View>
 
@@ -197,7 +207,6 @@ export default function DoctorScreen() {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: '#F5F8FF',
   },
   headerRow: {
     marginTop: 8,
@@ -209,10 +218,8 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 22,
     fontWeight: '800',
-    color: '#072B66',
   },
   linkText: {
-    color: '#0B4EF2',
     fontWeight: '700',
     padding: 8,
   },
@@ -224,7 +231,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   card: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 14,
     marginBottom: 12,
@@ -243,17 +249,13 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#072B66',
     marginBottom: 4,
   },
   cardSubtitle: {
     fontSize: 14,
-    color: '#6B82B1',
     marginBottom: 8,
   },
   addressText: {
-    fontSize: 12,
-    color: '#36548B',
     marginBottom: 10,
   },
   rowBetween: {
@@ -262,30 +264,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 'auto',
   },
-  distanceText: {
-    fontSize: 13,
-    color: '#0B4EF2',
-    fontWeight: '700',
-    backgroundColor: '#EEF4FF',
+  distanceBadge: {
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
-    overflow: 'hidden',
+  },
+  distanceText: {
+    fontSize: 13,
+    fontWeight: '700',
   },
   selectText: {
-    color: '#0B4EF2',
     fontWeight: '700',
   },
   errorText: {
     textAlign: 'center',
-    color: '#D9534F',
     marginTop: 50,
     fontSize: 16,
     paddingHorizontal: 20,
   },
   emptyText: {
     textAlign: 'center',
-    color: '#6B82B1',
     marginTop: 50,
     fontSize: 16,
     paddingHorizontal: 20,
@@ -293,8 +291,6 @@ const styles = StyleSheet.create({
   sectionHeader: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#36548B',
-    backgroundColor: '#F5F8FF',
     paddingTop: 16,
     paddingBottom: 8,
   },

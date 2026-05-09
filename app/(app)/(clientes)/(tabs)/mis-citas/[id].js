@@ -1,16 +1,19 @@
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTheme } from '../../../../../src/context/ThemeContext';
 import { cancelAppointment } from '../../../../../src/services/appointmentService';
-import formatDateTime from '../../../../../src/utils/formatDateTime';
 import formatDate from '../../../../../src/utils/formatDate';
+import formatDateTime from '../../../../../src/utils/formatDateTime';
 
 export default function CitaDetalle() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { cita: citaString } = params;
+  const { colors, isDarkMode, statusBarStyle } = useTheme();
 
   const [isCanceling, setIsCanceling] = useState(false);
   const [cancelError, setCancelError] = useState(null);
@@ -33,8 +36,8 @@ export default function CitaDetalle() {
 
   if (!cita) {
     return (
-      <SafeAreaView style={styles.container}>
-        <Text style={styles.errorText}>No se pudo cargar la información de la cita.</Text>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <Text style={[styles.errorText, { color: colors.error }]}>No se pudo cargar la información de la cita.</Text>
       </SafeAreaView>
     );
   }
@@ -83,42 +86,50 @@ export default function CitaDetalle() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       {/* El Stack.Screen se ha movido al _layout de mis-citas para un mejor control */}
       {/* Si necesitas un título aquí, asegúrate de que el layout lo permita */}
       <Stack.Screen options={{ title: 'Detalle de la Cita', headerShown: false }} />
+      <StatusBar style={statusBarStyle} />
 
       <View style={styles.headerRow}>
         <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.linkText}>← Mis Citas</Text>
+          <Text style={[styles.linkText, { color: colors.primary }]}>← Mis Citas</Text>
         </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>{doctorName}</Text>
-            <Text style={styles.cardSubtitle}>{doctorSpeciality}</Text>
+        <View style={[
+          styles.card, 
+          { 
+            backgroundColor: colors.card, 
+            shadowColor: isDarkMode ? '#000' : '#072B66',
+            borderWidth: isDarkMode ? 1 : 0,
+            borderColor: colors.border
+          }]}>
+          <View style={[styles.cardHeader, { backgroundColor: isDarkMode ? colors.border : '#EAF1FF', borderBottomColor: isDarkMode ? colors.border : '#D7E8FF' }]}>
+            <Text style={[styles.cardTitle, { color: colors.primary }]}>{doctorName}</Text>
+            <Text style={[styles.cardSubtitle, { color: colors.subtitle }]}>{doctorSpeciality}</Text>
           </View>
           <View style={styles.cardBody}>
-            <DetailRow icon="calendar" label="Fecha" value={appointmentDate} />
-            <DetailRow icon="clock-o" label="Horario" value={timeRange} />
-            <DetailRow icon="map-marker" label="Ubicación" value={clinicAddress} />
-            <DetailRow icon="info-circle" label="ID de Cita" value={cita.id} />
+            <DetailRow icon="calendar" label="Fecha" value={appointmentDate} colors={colors} />
+            <DetailRow icon="clock-o" label="Horario" value={timeRange} colors={colors} />
+            <DetailRow icon="map-marker" label="Ubicación" value={clinicAddress} colors={colors} />
+            <DetailRow icon="info-circle" label="ID de Cita" value={cita.id} colors={colors} />
           </View>
         </View>
 
-        {cancelError && <Text style={styles.errorText}>{cancelError}</Text>}
+        {cancelError && <Text style={[styles.errorText, { color: colors.error }]}>{cancelError}</Text>}
 
         {!isPastAppointment && (
           <View style={{ marginTop: 30 }}>
             <TouchableOpacity
-              style={[styles.cancelButton, isCanceling && styles.disabledButton]}
+              style={[styles.cancelButton, { backgroundColor: colors.error }, isCanceling && styles.disabledButton]}
               onPress={handleCancelAppointment}
               disabled={isCanceling}
             >
               {isCanceling
-                ? <ActivityIndicator color="#FFFFFF" />
+                ? <ActivityIndicator color={colors.white} />
                 : <Text style={styles.cancelButtonText}>Cancelar Cita</Text>}
             </TouchableOpacity>
           </View>
@@ -128,18 +139,18 @@ export default function CitaDetalle() {
   );
 }
 
-const DetailRow = ({ icon, label, value }) => (
+const DetailRow = ({ icon, label, value, colors }) => (
   <View style={styles.detailRow}>
-    <FontAwesome name={icon} size={18} color="#4B6AA3" style={styles.detailIcon} />
+    <FontAwesome name={icon} size={18} color={colors.primary} style={styles.detailIcon} />
     <View style={styles.detailTextContainer}>
-      <Text style={styles.detailLabel}>{label}</Text>
-      <Text style={styles.detailValue}>{value}</Text>
+      <Text style={[styles.detailLabel, { color: colors.subtitle }]}>{label}</Text>
+      <Text style={[styles.detailValue, { color: colors.text }]}>{value}</Text>
     </View>
   </View>
 );
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F5F8FF' },
+  container: { flex: 1 },
   scrollContainer: { padding: 24, paddingTop: 10 },
   headerRow: {
     paddingHorizontal: 24,
@@ -147,34 +158,27 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
   },
   linkText: {
-    color: '#0B4EF2',
     fontWeight: '700',
     fontSize: 16,
   },
   card: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 12,
-    shadowColor: '#072B66',
     shadowOpacity: 0.08,
     shadowRadius: 10,
     elevation: 5,
     overflow: 'hidden',
   },
   cardHeader: {
-    backgroundColor: '#EAF1FF',
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#D7E8FF',
   },
   cardTitle: {
     fontSize: 22,
     fontWeight: '800',
-    color: '#072B66',
   },
   cardSubtitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#36548B',
     marginTop: 4,
   },
   cardBody: {
@@ -195,24 +199,20 @@ const styles = StyleSheet.create({
   },
   detailLabel: {
     fontSize: 13,
-    color: '#6B82B1',
     marginBottom: 4,
   },
   detailValue: {
     fontSize: 16,
-    color: '#072B66',
     fontWeight: '600',
     lineHeight: 22,
   },
   errorText: {
     textAlign: 'center',
-    color: '#D9534F',
     marginTop: 30,
     fontSize: 16,
     padding: 24,
   },
   cancelButton: {
-    backgroundColor: '#D9534F', // Un color rojo para indicar una acción destructiva
     padding: 15,
     borderRadius: 12,
     alignItems: 'center',

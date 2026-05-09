@@ -1,15 +1,18 @@
-import { StyleSheet, Text, View, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
-import { Stack, useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useContext, useState } from 'react';
-import { useAuth } from '../../../../../src/context/AuthContext';
-import { CitaContext } from './+context/CitaContext';
-import { createAppointment } from '../../../../../src/services/appointmentService';
 import { FontAwesome } from '@expo/vector-icons';
+import { Stack, useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import { useContext, useState } from 'react';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAuth } from '../../../../../src/context/AuthContext';
+import { useTheme } from '../../../../../src/context/ThemeContext';
+import { createAppointment } from '../../../../../src/services/appointmentService';
+import { CitaContext } from './+context/CitaContext';
 
 export default function ResumenScreen() {
   const router = useRouter();
   const { user } = useAuth();
+  const { colors, isDarkMode, statusBarStyle } = useTheme();
   const { selectedDoctor, selectedDate, selectedSlot, selectedLocation, resetCita } = useContext(CitaContext);
 
   const [isConfirming, setIsConfirming] = useState(false);
@@ -70,70 +73,78 @@ export default function ResumenScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]}>
       <Stack.Screen options={{ title: 'Resumen de la cita', headerShown: false }} />
+      <StatusBar style={statusBarStyle} />
 
       <View style={styles.headerRow}>
         <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.linkText}>← Fecha</Text>
+          <Text style={[styles.linkText, { color: colors.primary }]}>← Fecha</Text>
         </TouchableOpacity>
-        <Text style={styles.sectionTitleSmall}>Resumen</Text>
+        <Text style={[styles.sectionTitleSmall, { color: colors.text }]}>Resumen</Text>
         <View style={{ width: 64 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContainer}>
-        {confirmError && <Text style={styles.errorText}>{confirmError}</Text>}
+        {confirmError && <Text style={[styles.errorText, { color: colors.error }]}>{confirmError}</Text>}
 
-        <View style={styles.summaryCard}>
+        <View style={[
+          styles.summaryCard, 
+          { 
+            backgroundColor: colors.card, 
+            shadowColor: isDarkMode ? '#000' : '#072B66',
+            borderWidth: isDarkMode ? 1 : 0,
+            borderColor: colors.border
+          }]}>
           <View style={styles.summaryDoctorInfo}>
-            <Text style={styles.summaryName}>{selectedDoctor?.name || 'Doctor no seleccionado'}</Text>
-            <Text style={styles.summarySpec}>{selectedDoctor?.specialty || 'Especialidad no disponible'}</Text>
-            {selectedDoctor?.biography && <Text style={styles.summaryMeta}>{selectedDoctor.biography}</Text>}
+            <Text style={[styles.summaryName, { color: colors.text }]}>{selectedDoctor?.name || 'Doctor no seleccionado'}</Text>
+            <Text style={[styles.summarySpec, { color: colors.subtitle }]}>{selectedDoctor?.specialty || 'Especialidad no disponible'}</Text>
+            {selectedDoctor?.biography && <Text style={[styles.summaryMeta, { color: colors.subtitle }]}>{selectedDoctor.biography}</Text>}
             {selectedDoctor?.address && (
               <View style={styles.summaryDetailRow}>
-                <FontAwesome name="map-marker" size={16} color="#4B6AA3" style={styles.summaryDetailIcon} />
-                <Text style={styles.summaryMeta}>{selectedDoctor.address}</Text>
+                <FontAwesome name="map-marker" size={16} color={colors.primary} style={styles.summaryDetailIcon} />
+                <Text style={[styles.summaryMeta, { color: colors.text }]}>{selectedDoctor.address}</Text>
               </View>
             )}
             {selectedDoctor?.distance && (
               <View style={styles.summaryDetailRow}>
-                <FontAwesome name="road" size={16} color="#4B6AA3" style={styles.summaryDetailIcon} />
-                <Text style={styles.summaryMeta}>Aprox. {(selectedDoctor.distance / 1000).toFixed(1)} km</Text>
+                <FontAwesome name="road" size={16} color={colors.primary} style={styles.summaryDetailIcon} />
+                <Text style={[styles.summaryMeta, { color: colors.text }]}>Aprox. {(selectedDoctor.distance / 1000).toFixed(1)} km</Text>
               </View>
             )}
             <View style={styles.summaryDetailRow}>
-              <FontAwesome name="clock-o" size={16} color="#4B6AA3" style={styles.summaryDetailIcon} />
-              <Text style={styles.summaryMeta}>Horario: {displayTime} · {readableDate}</Text>
+              <FontAwesome name="clock-o" size={16} color={colors.primary} style={styles.summaryDetailIcon} />
+              <Text style={[styles.summaryMeta, { color: colors.text }]}>Horario: {displayTime} · {readableDate}</Text>
             </View>
           </View>
         </View>
 
         {/* Datos del Paciente */}
-        <View style={styles.infoBox}>
-          <Text style={styles.infoTitle}>Datos del Paciente</Text>
-          <Text style={styles.infoLine}>Nombre: {user?.name || 'No disponible'}</Text>
-          {user?.email && <Text style={styles.infoLine}>Email: {user.email}</Text>}
-          {user?.phoneNumber && <Text style={styles.infoLine}>Teléfono: {user.phoneNumber}</Text>}
+        <View style={[styles.infoBox, { backgroundColor: isDarkMode ? colors.card : '#EEF4FF', borderWidth: isDarkMode ? 1 : 0, borderColor: colors.border }]}>
+          <Text style={[styles.infoTitle, { color: colors.primary }]}>Datos del Paciente</Text>
+          <Text style={[styles.infoLine, { color: colors.text }]}>Nombre: {user?.name || 'No disponible'}</Text>
+          {user?.email && <Text style={[styles.infoLine, { color: colors.text }]}>Email: {user.email}</Text>}
+          {user?.phoneNumber && <Text style={[styles.infoLine, { color: colors.text }]}>Teléfono: {user.phoneNumber}</Text>}
         </View>
 
         {/* Ubicación Seleccionada por el Usuario */}
         {selectedLocation?.address && (
-          <View style={styles.infoBox}>
-            <Text style={styles.infoTitle}>Tu Ubicación Seleccionada</Text>
-            <Text style={styles.infoLine}>Dirección: {selectedLocation.address}</Text>
+          <View style={[styles.infoBox, { backgroundColor: isDarkMode ? colors.card : '#EEF4FF', borderWidth: isDarkMode ? 1 : 0, borderColor: colors.border }]}>
+            <Text style={[styles.infoTitle, { color: colors.primary }]}>Tu Ubicación Seleccionada</Text>
+            <Text style={[styles.infoLine, { color: colors.text }]}>Dirección: {selectedLocation.address}</Text>
           </View>
         )}
 
         <View style={{ width: '100%', marginTop: 10 }}>
           <TouchableOpacity
-            style={[styles.primaryButton, { marginTop: 12 }, isConfirming && styles.disabledButton]}
+            style={[styles.primaryButton, { backgroundColor: colors.primary, marginTop: 12 }, isConfirming && styles.disabledButton]}
             onPress={handleConfirmarCita} // El botón ya estaba conectado correctamente
             disabled={isConfirming}
           >
             {isConfirming ? (
-              <ActivityIndicator color="#FFFFFF" />
+              <ActivityIndicator color={colors.white} />
             ) : (
-              <Text style={styles.primaryButtonText}>Confirmar cita</Text>
+              <Text style={[styles.primaryButtonText, { color: colors.white }]}>Confirmar cita</Text>
             )}
           </TouchableOpacity>
         </View>
@@ -145,7 +156,6 @@ export default function ResumenScreen() {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: '#F5F8FF',
   },
   headerRow: {
     marginTop: 8,
@@ -157,10 +167,8 @@ const styles = StyleSheet.create({
   sectionTitleSmall: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#072B66',
   },
   linkText: {
-    color: '#0B4EF2',
     fontWeight: '700',
     padding: 8,
   },
@@ -171,13 +179,11 @@ const styles = StyleSheet.create({
   },
   summaryCard: {
     width: '100%',
-    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    shadowColor: '#072B66',
     shadowOpacity: 0.05,
     shadowRadius: 10,
     elevation: 4,
@@ -189,16 +195,13 @@ const styles = StyleSheet.create({
   summaryName: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#072B66',
   },
   summarySpec: {
-    color: '#6B82B1',
     marginTop: 4,
     marginBottom: 6,
   },
   summaryMeta: {
-    color: '#4B6AA3',
-    fontWeight: '700',
+    fontWeight: '600',
     marginTop: 4,
   },
   summaryDetailRow: {
@@ -210,35 +213,29 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   infoBox: {
-    backgroundColor: '#EEF4FF',
     padding: 14,
     borderRadius: 12,
     marginTop: 8,
   },
   infoTitle: {
     fontWeight: '800',
-    color: '#072B66',
     marginBottom: 8,
   },
   infoLine: {
-    color: '#24407A',
     marginBottom: 6,
   },
   primaryButton: {
-    backgroundColor: '#0B4EF2',
     paddingVertical: 14,
     paddingHorizontal: 20,
     borderRadius: 12,
     width: 220,
     alignSelf: 'center',
     alignItems: 'center',
-    shadowColor: '#0B4EF2',
     shadowOpacity: 0.18,
     shadowRadius: 12,
     elevation: 6,
   },
   primaryButtonText: {
-    color: '#FFFFFF',
     fontWeight: '700',
     fontSize: 16,
   },
@@ -247,7 +244,6 @@ const styles = StyleSheet.create({
   },
   errorText: {
     textAlign: 'center',
-    color: '#D9534F',
     marginBottom: 15,
     fontSize: 15,
   },

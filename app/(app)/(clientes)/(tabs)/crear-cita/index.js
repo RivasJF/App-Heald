@@ -1,8 +1,10 @@
-import { Stack, useRouter } from 'expo-router';
 import * as Location from "expo-location";
-import { useEffect, useState, useContext, useRef, useCallback, useMemo } from "react";
-import { View, StyleSheet, Text, ActivityIndicator, TouchableOpacity, Alert, Pressable, Platform, Linking } from "react-native";
+import { Stack, useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { ActivityIndicator, Alert, Linking, Platform, Pressable, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTheme } from '../../../../../src/context/ThemeContext';
 import { CitaContext } from './+context/CitaContext';
 
 const DEFAULT_LOCATION = {
@@ -10,7 +12,7 @@ const DEFAULT_LOCATION = {
   longitude: -74.0060,
 };
 
-const LOCATION_TIMEOUT_MS = 10000;
+const LOCATION_TIMEOUT_MS = 15000; // Aumentamos a 15 segundos para mayor estabilidad
 
 const withTimeout = (promise, timeoutMs) => {
   const timeoutPromise = new Promise((_, reject) => {
@@ -33,6 +35,7 @@ const buildMapHtml = (latitude, longitude) => `<!doctype html><html><head><meta 
 export default function SelectLocationScreen() {
   const router = useRouter();
   const { setSelectedLocation } = useContext(CitaContext);
+  const { colors, isDarkMode, statusBarStyle } = useTheme();
 
   const [location, setLocation] = useState(null);
   const [address, setAddress] = useState("Cargando dirección...");
@@ -178,10 +181,10 @@ export default function SelectLocationScreen() {
   const renderMapContent = () => {
     if (!WebView || webviewError) {
       return (
-        <View style={styles.mapPlaceholder}>
-          <Text style={styles.mapPlaceholderText}>Mapa no disponible: falta WebView o falla al cargar.</Text>
-          <TouchableOpacity style={styles.openMapsButton} onPress={() => openExternalMap(location)}>
-            <Text style={styles.openMapsButtonText}>🗺️ Abrir en Maps</Text>
+        <View style={[styles.mapPlaceholder, { backgroundColor: colors.background }]}>
+          <Text style={[styles.mapPlaceholderText, { color: colors.text }]}>Mapa no disponible: falta WebView o falla al cargar.</Text>
+          <TouchableOpacity style={[styles.openMapsButton, { backgroundColor: colors.primary }]} onPress={() => openExternalMap(location)}>
+            <Text style={[styles.openMapsButtonText, { color: colors.white }]}>🗺️ Abrir en Maps</Text>
           </TouchableOpacity>
         </View>
       );
@@ -210,8 +213,8 @@ export default function SelectLocationScreen() {
           }}
         />
 
-        <TouchableOpacity style={styles.centerButton} onPress={handleCenterMap}>
-          <Text style={styles.centerButtonText}>Centrar</Text>
+        <TouchableOpacity style={[styles.centerButton, { backgroundColor: colors.card }]} onPress={handleCenterMap}>
+          <Text style={[styles.centerButtonText, { color: colors.text }]}>Centrar</Text>
         </TouchableOpacity>
       </>
     );
@@ -219,49 +222,57 @@ export default function SelectLocationScreen() {
 
   if (isLoading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#0B4EF2" />
-        <Text style={styles.loadingText}>Cargando mapa y ubicación...</Text>
+      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={[styles.loadingText, { color: colors.text }]}>Cargando mapa y ubicación...</Text>
       </View>
     );
   }
 
   if (!location) {
     return (
-      <View style={styles.loadingContainer}>
-        <Text style={{ marginBottom: 20, color: '#072B66', fontSize: 16 }}>
+      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <Text style={{ marginBottom: 20, color: colors.text, fontSize: 16 }}>
           No se pudo obtener la ubicación
         </Text>
         <Pressable 
-          style={styles.continueButton}
+          style={[styles.continueButton, { backgroundColor: colors.primary }]}
           onPress={handleConfirmLocation}
         >
-          <Text style={styles.continueButtonText}>Continuar sin ubicación</Text>
+          <Text style={[styles.continueButtonText, { color: colors.white }]}>Continuar sin ubicación</Text>
         </Pressable>
       </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'left', 'right']}>
       <Stack.Screen options={{ title: 'Selecciona Ubicación', headerShown: false }} />
+      <StatusBar style={statusBarStyle} />
       <View style={styles.mapContainer}>
         {renderMapContent()}
       </View>
 
-      <View style={styles.infoPanel}>
+      <View style={[
+        styles.infoPanel, 
+        { 
+          backgroundColor: colors.card,
+          borderWidth: isDarkMode ? 1 : 0,
+          borderColor: colors.border,
+          shadowColor: isDarkMode ? '#000' : '#000'
+        }]}>
         <View style={styles.infoPanelContent}>
           <View style={styles.addressContainer}>
-            <Text style={styles.addressLabel}>Ubicación seleccionada</Text>
-            <Text style={styles.addressText}>{address}</Text>
-            <Text style={styles.coordsText}>{location.latitude.toFixed(5)}, {location.longitude.toFixed(5)}</Text>
+            <Text style={[styles.addressLabel, { color: colors.subtitle }]}>Ubicación seleccionada</Text>
+            <Text style={[styles.addressText, { color: colors.text }]}>{address}</Text>
+            <Text style={[styles.coordsText, { color: colors.subtitle }]}>{location.latitude.toFixed(5)}, {location.longitude.toFixed(5)}</Text>
           </View>
           <View style={styles.buttonContainer}>
-            <TouchableOpacity style={styles.refreshButton} onPress={handleRefreshLocation} disabled={isLoading}>
-              <Text style={styles.refreshButtonText}>{isLoading ? 'Actualizando...' : 'Actualizar'}</Text>
+            <TouchableOpacity style={[styles.refreshButton, { backgroundColor: isDarkMode ? colors.border : '#E8EFF9' }]} onPress={handleRefreshLocation} disabled={isLoading}>
+              <Text style={[styles.refreshButtonText, { color: colors.primary }]}>{isLoading ? 'Actualizando...' : 'Actualizar'}</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.saveButton} onPress={handleConfirmLocation}>
-              <Text style={styles.saveButtonText}>Confirmar Ubicación</Text>
+            <TouchableOpacity style={[styles.saveButton, { backgroundColor: colors.primary }]} onPress={handleConfirmLocation}>
+              <Text style={[styles.saveButtonText, { color: colors.white }]}>Confirmar Ubicación</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -273,7 +284,6 @@ export default function SelectLocationScreen() {
 const styles = StyleSheet.create({
   container: { 
     flex: 1, 
-    backgroundColor: '#fff' 
   },
   loadingContainer: { 
     flex: 1, 
@@ -342,7 +352,6 @@ const styles = StyleSheet.create({
   },
   infoPanel: {
     flex: 0.36,
-    backgroundColor: '#fff',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     shadowColor: '#000',

@@ -5,6 +5,7 @@ import { ActivityIndicator, ScrollView, StyleSheet, Switch, Text, TouchableOpaci
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../../../../src/context/AuthContext';
 import { useTheme } from '../../../../../src/context/ThemeContext';
+import { findByPatient } from '../../../../../src/services/appointmentService';
 
 export default function PatientProfileScreen() {
   const router = useRouter();
@@ -12,15 +13,47 @@ export default function PatientProfileScreen() {
   const { isDarkMode, colors, toggleTheme } = useTheme();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [stats, setStats] = useState({ appointments: 0, doctors: 0, history: 0 });
 
-  // En una aplicación real, aquí cargarías los datos específicos del perfil del paciente
-  // Por ahora, solo simulamos la carga y usamos los datos del 'user' del AuthContext.
+  // Helper para manejar fechas locales y evitar desfases de zona horaria
+  const parseLocal = (isoString) => {
+    if (!isoString) return new Date();
+    try {
+      if (typeof isoString === 'string' && isoString.endsWith('Z')) {
+        return new Date(isoString.slice(0, -1));
+      }
+      return new Date(isoString);
+    } catch (e) {
+      return new Date(isoString);
+    }
+  };
+
+  // Función para limpiar el formato de la fecha de nacimiento
+  const formatDisplayDate = (dateString) => {
+    if (!dateString) return 'No disponible';
+    const datePart = dateString.split('T')[0]; // Quitamos el tiempo (T00:00...)
+    const [year, month, day] = datePart.split('-');
+    return `${day}/${month}/${year}`;
+  };
+
   const fetchPatientProfile = useCallback(async () => {
     if (user?.id) {
       try {
         setLoading(true);
-        // Simulación de carga de datos del paciente
-        await new Promise(resolve => setTimeout(resolve, 500)); 
+        const responseData = await findByPatient(user.id);
+        const appointments = Array.isArray(responseData) ? responseData : [];
+        
+        const now = new Date();
+        // Calculamos estadísticas reales
+        const uniqueDoctors = new Set(appointments.map(a => a.doctor?.id || a.doctorId));
+        const pastAppointments = appointments.filter(a => parseLocal(a.startTime) < now);
+
+        setStats({
+          appointments: appointments.length,
+          doctors: uniqueDoctors.size,
+          history: pastAppointments.length
+        });
+
         setError(null);
       } catch (e) {
         setError('No se pudo cargar el perfil del paciente.');
@@ -70,13 +103,13 @@ export default function PatientProfileScreen() {
         </View>
 
         <View style={styles.body}>
-          {/* Barra de Estadísticas (Valores de ejemplo) */}
+          {/* Barra de Estadísticas Reales */}
           <View style={[styles.statsBar, { backgroundColor: colors.card, shadowColor: isDarkMode ? '#000' : '#072B66' }]}>
-            <StatItem label="Citas" value="--" icon="calendar" colors={colors} />
+            <StatItem label="Citas" value={stats.appointments.toString()} icon="calendar" colors={colors} />
             <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
-            <StatItem label="Doctores" value="--" icon="user-md" colors={colors} />
+            <StatItem label="Doctores" value={stats.doctors.toString()} icon="user-md" colors={colors} />
             <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
-            <StatItem label="Historial" value="--" icon="history" colors={colors} />
+            <StatItem label="Historial" value={stats.history.toString()} icon="history" colors={colors} />
           </View>
 
           {error && <Text style={styles.errorText}>{error}</Text>}
@@ -86,7 +119,7 @@ export default function PatientProfileScreen() {
           <View style={[styles.infoCard, { backgroundColor: colors.card, shadowColor: isDarkMode ? '#000' : '#072B66' }]}>
             <InfoRow icon="envelope" label="Correo Electrónico" value={user?.email} colors={colors} />
             <InfoRow icon="phone" label="Teléfono" value={user?.phoneNumber || 'No disponible'} colors={colors} />
-            <InfoRow icon="birthday-cake" label="Fecha de Nacimiento" value={user?.birthDate || 'No disponible'} colors={colors} />
+            <InfoRow icon="birthday-cake" label="Fecha de Nacimiento" value={formatDisplayDate(user?.birthDate)} colors={colors} />
           </View>
 
           {/* Ajustes */}

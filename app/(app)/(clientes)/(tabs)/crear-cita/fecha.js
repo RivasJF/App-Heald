@@ -1,15 +1,18 @@
-import { StyleSheet, Text, View, TouchableOpacity, ScrollView, FlatList, ActivityIndicator } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, FlatList, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useContext, useMemo, useState, useEffect, useCallback } from 'react';
-import { CitaContext } from './+context/CitaContext';
+import { useTheme } from '../../../../../src/context/ThemeContext';
 import { getDoctorAvailability } from '../../../../../src/services/appointmentService';
+import { CitaContext } from './+context/CitaContext';
 
 const CDMX_TIME_ZONE = 'America/Mexico_City';
 
 export default function FechaScreen() {
   const router = useRouter();
   const { selectedDoctor, selectedDate, setSelectedDate, selectedSlot, setSelectedSlot } = useContext(CitaContext);
+  const { colors, isDarkMode, statusBarStyle } = useTheme();
 
   const [timeSlots, setTimeSlots] = useState([]);
   const [isLoadingTimes, setIsLoadingTimes] = useState(false);
@@ -130,31 +133,39 @@ export default function FechaScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]}>
       <Stack.Screen options={{ title: 'Seleccionar fecha y hora', headerShown: false }} />
+      <StatusBar style={statusBarStyle} />
       
       <View style={styles.headerRow}>
         <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.linkText}>← Doctores</Text>
+          <Text style={[styles.linkText, { color: colors.primary }]}>← Doctores</Text>
         </TouchableOpacity>
-        <Text style={styles.sectionTitleSmall}>Agenda</Text>
+        <Text style={[styles.sectionTitleSmall, { color: colors.text }]}>Agenda</Text>
         <View style={{ width: 64 }} />
       </View>
 
       {/* Info del Doctor */}
-      <View style={styles.doctorInfoContainer}>
+      <View style={[
+        styles.doctorInfoContainer, 
+        { 
+          backgroundColor: colors.card, 
+          shadowColor: isDarkMode ? '#000' : '#072B66',
+          borderWidth: isDarkMode ? 1 : 0,
+          borderColor: colors.border
+        }]}>
         <View style={{ flex: 1, paddingLeft: 10 }}>
-          <Text style={styles.doctorInfoName}>{selectedDoctor?.name}</Text>
-          <Text style={styles.doctorInfoSpec}>{selectedDoctor?.specialty} - {selectedDoctor?.biography}</Text>
-          <Text style={styles.doctorInfoAddress}>{selectedDoctor?.address}</Text>
-          <Text style={styles.doctorInfoDistance}>Aprox. {(selectedDoctor?.distance / 1000).toFixed(1)} km de tu ubicación</Text>
+          <Text style={[styles.doctorInfoName, { color: colors.text }]}>{selectedDoctor?.name}</Text>
+          <Text style={[styles.doctorInfoSpec, { color: colors.subtitle }]}>{selectedDoctor?.specialty} - {selectedDoctor?.biography}</Text>
+          <Text style={[styles.doctorInfoAddress, { color: colors.subtitle }]}>{selectedDoctor?.address}</Text>
+          <Text style={[styles.doctorInfoDistance, { color: colors.primary, backgroundColor: isDarkMode ? colors.border : '#EEF4FF' }]}>Aprox. {(selectedDoctor?.distance / 1000).toFixed(1)} km de tu ubicación</Text>
         </View>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContainerDate}>
         {/* Selección de Fecha */}
         <View style={styles.containerSection}>
-          <Text style={styles.label}>Elige un día disponible</Text>
+          <Text style={[styles.label, { color: colors.text }]}>Elige un día disponible</Text>
 
           <FlatList
             horizontal
@@ -166,11 +177,11 @@ export default function FechaScreen() {
               const chosen = selectedDate === item.iso;
               return (
                 <TouchableOpacity
-                  style={[styles.dayCard, chosen && styles.dayCardActive]}
+                  style={[styles.dayCard, { backgroundColor: colors.card, borderColor: colors.border }, chosen && { backgroundColor: colors.primary, borderColor: colors.primary, transform: [{ scale: 1.05 }] }]}
                   onPress={() => handleDateSelect(item.iso)}
                 >
-                  <Text style={[styles.dayLabel, chosen && styles.dayLabelActive]}>{item.label}</Text>
-                  <Text style={[styles.dateNumber, chosen && styles.dateNumberActive]}>{item.dateNumber}</Text>
+                  <Text style={[styles.dayLabel, { color: colors.subtitle }, chosen && { color: colors.white }]}>{item.label}</Text>
+                  <Text style={[styles.dateNumber, { color: colors.text }, chosen && { color: colors.white }]}>{item.dateNumber}</Text>
                 </TouchableOpacity>
               );
             }}
@@ -179,10 +190,10 @@ export default function FechaScreen() {
 
         {/* Selección de Horario */}
         <View style={[styles.containerSection, { marginTop: 20 }]}>
-          <Text style={styles.label}>Horarios</Text>
+          <Text style={[styles.label, { color: colors.text }]}>Horarios</Text>
 
           {isLoadingTimes ? (
-            <ActivityIndicator size="large" color="#0B4EF2" style={{ marginTop: 20 }} />
+            <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 20 }} />
           ) : errorTimes ? (
             <Text style={styles.errorText}>{errorTimes}</Text>
           ) : timeSlots.length > 0 ? (
@@ -193,10 +204,10 @@ export default function FechaScreen() {
                 return (
                   <TouchableOpacity
                     key={slot.start}
-                    style={[styles.timeChip, chosen && styles.timeChipActive]}
+                    style={[styles.timeChip, { backgroundColor: colors.card, borderColor: colors.border }, chosen && { backgroundColor: colors.primary, borderColor: colors.primary, transform: [{ scale: 1.05 }] }]}
                     onPress={() => setSelectedSlot(slot)}
                   >
-                    <Text style={[styles.timeChipText, chosen && styles.timeChipTextActive]}>{displayTime}</Text>
+                    <Text style={[styles.timeChipText, { color: colors.text }, chosen && { color: colors.white }]}>{displayTime}</Text>
                   </TouchableOpacity>
                 );
               })}
@@ -207,11 +218,11 @@ export default function FechaScreen() {
 
           <View style={{ marginTop: 30 }}>
             <TouchableOpacity
-              style={[styles.primaryButton, !(selectedDate && selectedSlot) && styles.disabledButton]}
+              style={[styles.primaryButton, { backgroundColor: colors.primary }, !(selectedDate && selectedSlot) && styles.disabledButton]}
               onPress={handleContinue}
               activeOpacity={selectedDate && selectedSlot ? 0.8 : 1}
             >
-              <Text style={styles.primaryButtonText}>
+              <Text style={[styles.primaryButtonText, { color: colors.white }]}>
                 {selectedDate && selectedSlot ? 'Continuar' : 'Selecciona fecha y hora'}
               </Text>
             </TouchableOpacity>
@@ -225,7 +236,6 @@ export default function FechaScreen() {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: '#F5F8FF',
   },
   headerRow: {
     marginTop: 8,
@@ -237,47 +247,28 @@ const styles = StyleSheet.create({
   sectionTitleSmall: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#072B66',
   },
   linkText: {
-    color: '#0B4EF2',
     fontWeight: '700',
     padding: 8,
   },
   doctorInfoContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
     marginHorizontal: 18,
     padding: 16,
     borderRadius: 12,
     marginBottom: 20,
-    shadowColor: '#072B66',
     shadowOpacity: 0.05,
     shadowRadius: 10,
     elevation: 4,
   },
-  doctorInfoName: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#072B66',
-  },
-  doctorInfoSpec: {
-    fontSize: 13,
-    color: '#6B82B1',
-    marginTop: 2,
-  },
-  doctorInfoAddress: {
-    fontSize: 12,
-    color: '#36548B',
-    marginTop: 6,
-    marginBottom: 8,
-  },
+  doctorInfoName: { fontSize: 16, fontWeight: '800' },
+  doctorInfoSpec: { fontSize: 13, marginTop: 2 },
+  doctorInfoAddress: { fontSize: 12, marginTop: 6, marginBottom: 8 },
   doctorInfoDistance: {
     fontSize: 13,
-    color: '#0B4EF2',
     fontWeight: '700',
-    backgroundColor: '#EEF4FF',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
@@ -291,50 +282,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
   },
   label: {
-    color: '#36548B',
     fontWeight: '700',
     marginBottom: 12,
     fontSize: 15,
   },
   dayCard: {
-    paddingVertical: 10,
-    paddingHorizontal: 10,
     width: 60,
     height: 70,
-    backgroundColor: '#FFFFFF',
     borderRadius: 10,
     marginRight: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#072B66',
     shadowOpacity: 0.04,
     shadowRadius: 6,
     elevation: 2,
     borderWidth: 1.5,
-    borderColor: '#EAF1FF',
   },
-  dayCardActive: {
-    backgroundColor: '#0B4EF2',
-    borderColor: '#0B4EF2',
-    transform: [{ scale: 1.05 }],
-  },
-  dayLabel: {
-    color: '#6B82B1',
-    fontWeight: '600',
-    fontSize: 13,
-    marginBottom: 4,
-  },
-  dayLabelActive: {
-    color: '#EAF1FF',
-  },
-  dateNumber: {
-    color: '#072B66',
-    fontWeight: '800',
-    fontSize: 20,
-  },
-  dateNumberActive: {
-    color: '#fff',
-  },
+  dayLabel: { fontWeight: '600', fontSize: 13, marginBottom: 4 },
+  dateNumber: { fontWeight: '800', fontSize: 20 },
   timeGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -343,47 +308,25 @@ const styles = StyleSheet.create({
   timeChip: {
     paddingVertical: 10,
     paddingHorizontal: 18,
-    backgroundColor: '#FFFFFF',
     borderRadius: 20,
     borderWidth: 1.5,
-    borderColor: '#EAF1FF',
-    shadowColor: '#072B66',
     shadowOpacity: 0.03,
     shadowRadius: 5,
     elevation: 1,
     marginRight: 10,
     marginBottom: 10,
   },
-  timeChipActive: {
-    backgroundColor: '#0B4EF2',
-    borderColor: '#0B4EF2',
-    transform: [{ scale: 1.05 }],
-  },
-  timeChipText: {
-    color: '#223762',
-    fontWeight: '700',
-    fontSize: 14,
-  },
-  timeChipTextActive: {
-    color: '#fff',
-  },
+  timeChipText: { fontWeight: '700', fontSize: 14 },
   primaryButton: {
-    backgroundColor: '#0B4EF2',
     paddingVertical: 14,
     paddingHorizontal: 20,
     borderRadius: 12,
     width: 220,
     alignSelf: 'center',
     alignItems: 'center',
-    shadowColor: '#0B4EF2',
     shadowOpacity: 0.18,
     shadowRadius: 12,
     elevation: 6,
-  },
-  primaryButtonText: {
-    color: '#FFFFFF',
-    fontWeight: '700',
-    fontSize: 16,
   },
   disabledButton: {
     opacity: 0.5,

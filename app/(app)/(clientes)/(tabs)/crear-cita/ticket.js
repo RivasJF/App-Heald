@@ -1,13 +1,16 @@
-import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
-import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { useContext, useEffect } from 'react';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../../../../src/context/AuthContext';
+import { useTheme } from '../../../../../src/context/ThemeContext';
 import { CitaContext } from './+context/CitaContext';
 
 export default function TicketScreen() {
   const router = useRouter();
   const { user } = useAuth();
+  const { colors, isDarkMode, statusBarStyle } = useTheme();
   const { resetCita } = useContext(CitaContext); // Solo necesitamos resetCita del contexto
   const params = useLocalSearchParams();
   const { citaCreada: citaString, doctor: doctorString } = params;
@@ -49,43 +52,51 @@ export default function TicketScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]}>
       <Stack.Screen options={{ title: 'Ticket', headerShown: false }} />
+      <StatusBar style={statusBarStyle} />
 
       <View style={styles.headerRow}>
         <TouchableOpacity onPress={handleFinish}>
-          <Text style={styles.linkText}>← Inicio</Text>
+          <Text style={[styles.linkText, { color: colors.primary }]}>← Inicio</Text>
         </TouchableOpacity>
-        <Text style={styles.sectionTitleSmall}>Ticket</Text>
+        <Text style={[styles.sectionTitleSmall, { color: colors.text }]}>Ticket</Text>
         <View style={{ width: 64 }} />
       </View>
 
       <View style={styles.ticketContainer}>
-        <View style={styles.ticketHeader}>
-          <Text style={styles.ticketTitle}>ticket</Text>
-          <Text style={styles.ticketCode}>{ticketCode}</Text>
+        <View style={[styles.ticketHeader, { backgroundColor: isDarkMode ? colors.border : '#EAF1FF' }]}>
+          <Text style={[styles.ticketTitle, { color: colors.text }]}>ticket</Text>
+          <Text style={[styles.ticketCode, { color: colors.primary }]}>{ticketCode}</Text>
         </View>
 
-        <View style={styles.ticketBody}>
+        <View style={[
+          styles.ticketBody, 
+          { 
+            backgroundColor: colors.card, 
+            shadowColor: isDarkMode ? '#000' : '#072B66',
+            borderWidth: isDarkMode ? 1 : 0,
+            borderColor: colors.border
+          }]}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.ticketName}>{doctor?.name}</Text>
-            <Text style={styles.ticketSpec}>{doctor?.specialty}</Text>
-            <Text style={styles.ticketMeta}>Fecha: {readableDate || 'No disponible'}</Text>
-            <Text style={styles.ticketMeta}>Hora: {readableTime || 'No disponible'}</Text>
-            <Text style={styles.ticketMeta}>Paciente: {user?.name || 'No disponible'}</Text>
+            <Text style={[styles.ticketName, { color: colors.text }]}>{doctor?.name}</Text>
+            <Text style={[styles.ticketSpec, { color: colors.subtitle }]}>{doctor?.specialty}</Text>
+            <Text style={[styles.ticketMeta, { color: colors.text }]}>Fecha: {readableDate || 'No disponible'}</Text>
+            <Text style={[styles.ticketMeta, { color: colors.text }]}>Hora: {readableTime || 'No disponible'}</Text>
+            <Text style={[styles.ticketMeta, { color: colors.text }]}>Paciente: {user?.name || 'No disponible'}</Text>
           </View>
         </View>
 
-        <View style={styles.qrMock}>
-          <Text style={{ color: '#0B4EF2', fontWeight: '700' }}>--- Código ---</Text>
-          <Text style={{ color: '#0B4EF2', marginTop: 6 }}>{ticketCode}</Text>
+        <View style={[styles.qrMock, { backgroundColor: isDarkMode ? colors.background : '#F7FBFF', borderColor: colors.border }]}>
+          <Text style={{ color: colors.primary, fontWeight: '700' }}>--- Código ---</Text>
+          <Text style={{ color: colors.primary, marginTop: 6 }}>{ticketCode}</Text>
         </View>
 
         <TouchableOpacity
-          style={[styles.primaryButton, { marginTop: 18, alignSelf: 'center', width: '80%' }]}
+          style={[styles.primaryButton, { backgroundColor: colors.primary, marginTop: 18, alignSelf: 'center', width: '80%' }]}
           onPress={handleFinish}
         >
-          <Text style={styles.primaryButtonText}>Finalizar</Text>
+          <Text style={[styles.primaryButtonText, { color: colors.white }]}>Finalizar</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -95,7 +106,6 @@ export default function TicketScreen() {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: '#F5F8FF',
   },
   headerRow: {
     marginTop: 8,
@@ -107,10 +117,8 @@ const styles = StyleSheet.create({
   sectionTitleSmall: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#072B66',
   },
   linkText: {
-    color: '#0B4EF2',
     fontWeight: '700',
     padding: 8,
   },
@@ -120,70 +128,57 @@ const styles = StyleSheet.create({
   },
   ticketHeader: {
     width: '92%',
-    backgroundColor: '#EAF1FF',
     padding: 14,
     borderRadius: 12,
     alignItems: 'center',
     marginBottom: 12,
   },
   ticketTitle: {
-    color: '#072B66',
     fontWeight: '900',
     fontSize: 20,
   },
   ticketCode: {
-    color: '#0B4EF2',
     fontWeight: '800',
     marginTop: 6,
   },
   ticketBody: {
     width: '92%',
-    backgroundColor: '#FFFFFF',
     padding: 16,
     borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    shadowColor: '#072B66',
     shadowOpacity: 0.04,
     shadowRadius: 12,
     elevation: 5,
   },
   ticketName: {
     fontWeight: '800',
-    color: '#072B66',
     fontSize: 18,
   },
   ticketSpec: {
-    color: '#6B82B1',
   },
   ticketMeta: {
     marginTop: 6,
-    color: '#24407A',
     fontWeight: '700',
   },
   qrMock: {
     marginTop: 14,
     width: '92%',
-    backgroundColor: '#F7FBFF',
     padding: 12,
     borderRadius: 12,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E6F0FF',
   },
   primaryButton: {
-    backgroundColor: '#0B4EF2',
     paddingVertical: 14,
     paddingHorizontal: 20,
     borderRadius: 12,
     alignItems: 'center',
-    shadowColor: '#0B4EF2',
     shadowOpacity: 0.18,
     shadowRadius: 12,
     elevation: 6,
   },
   primaryButtonText: {
-    color: '#FFFFFF',
     fontWeight: '700',
     fontSize: 16,
   },

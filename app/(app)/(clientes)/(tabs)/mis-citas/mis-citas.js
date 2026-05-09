@@ -1,16 +1,20 @@
-import { Stack, useRouter, useFocusEffect } from 'expo-router';
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useState, useCallback, useMemo, useEffect } from 'react';
-import { useAuth } from '../../../../../src/context/AuthContext';
-import { findByPatient } from '../../../../../src/services/appointmentService';
 import { FontAwesome } from '@expo/vector-icons';
+import { Stack, useFocusEffect, useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAuth } from '../../../../../src/context/AuthContext';
+import { useTheme } from '../../../../../src/context/ThemeContext';
+import { findByPatient } from '../../../../../src/services/appointmentService';
 
 const PAGE_SIZE = 5;
+const CDMX_TIME_ZONE = 'America/Mexico_City';
  
 export default function MisCitas() {
   const router = useRouter();
   const { user } = useAuth();
+  const { colors, isDarkMode, statusBarStyle } = useTheme();
   const [citas, setCitas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -120,14 +124,21 @@ export default function MisCitas() {
           params: { cita: JSON.stringify(item) } // Pasamos el objeto como string
         })}
       >
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>{doctorName}</Text>
-            <Text style={styles.cardSubtitle}>{item.doctor.speciality}</Text>
+        <View style={[
+          styles.card, 
+          { 
+            backgroundColor: colors.card, 
+            shadowColor: isDarkMode ? '#000' : '#072B66',
+            borderWidth: isDarkMode ? 1 : 0,
+            borderColor: colors.border
+          }]}>
+          <View style={[styles.cardHeader, { backgroundColor: isDarkMode ? colors.border : '#EAF1FF' }]}>
+            <Text style={[styles.cardTitle, { color: colors.primary }]}>{doctorName}</Text>
+            <Text style={[styles.cardSubtitle, { color: colors.subtitle }]}>{item.doctor.speciality}</Text>
           </View>
           <View style={styles.cardBody}>
-            <InfoRow icon="calendar" text={`${fecha} a las ${hora} hrs.`} />
-            <InfoRow icon="map-marker" text={item.clinicLocation.address} />
+            <InfoRow icon="calendar" text={`${fecha} a las ${hora} hrs.`} colors={colors} />
+            <InfoRow icon="map-marker" text={item.clinicLocation.address} colors={colors} />
           </View>
         </View>
       </TouchableOpacity>
@@ -135,35 +146,36 @@ export default function MisCitas() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <Stack.Screen options={{ title: 'Mis Citas' }} />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <Stack.Screen options={{ title: 'Mis Citas', headerShown: false }} />
+      <StatusBar style={statusBarStyle} />
       <View style={styles.headerContainer}>
         <View style={styles.headerSideSpacer} />
-        <Text style={styles.title}>Mis Citas</Text>
+        <Text style={[styles.title, { color: colors.text }]}>Mis Citas</Text>
         <TouchableOpacity onPress={fetchCitas} disabled={loading}>
-          <FontAwesome name="refresh" size={24} color={loading ? '#B0C4DE' : '#0B4EF2'} />
+          <FontAwesome name="refresh" size={24} color={loading ? '#B0C4DE' : colors.primary} />
         </TouchableOpacity>
       </View>
 
-      <View style={styles.filterContainer}>
+      <View style={[styles.filterContainer, { backgroundColor: isDarkMode ? colors.border : '#EAF1FF' }]}>
         <TouchableOpacity
-          style={[styles.filterButton, filter === 'proximas' && styles.filterButtonActive]}
+          style={[styles.filterButton, filter === 'proximas' && [styles.filterButtonActive, { backgroundColor: colors.card }]]}
           onPress={() => handleFilterChange('proximas')}
         >
-          <Text style={[styles.filterText, filter === 'proximas' && styles.filterTextActive]}>Próximas</Text>
+          <Text style={[styles.filterText, { color: colors.primary }, filter === 'proximas' && styles.filterTextActive]}>Próximas</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.filterButton, filter === 'pasadas' && styles.filterButtonActive]}
+          style={[styles.filterButton, filter === 'pasadas' && [styles.filterButtonActive, { backgroundColor: colors.card }]]}
           onPress={() => handleFilterChange('pasadas')}
         >
-          <Text style={[styles.filterText, filter === 'pasadas' && styles.filterTextActive]}>Pasadas</Text>
+          <Text style={[styles.filterText, { color: colors.primary }, filter === 'pasadas' && styles.filterTextActive]}>Pasadas</Text>
         </TouchableOpacity>
       </View>
 
       {loading ? (
-        <ActivityIndicator size="large" color="#0B4EF2" style={{ marginTop: 30 }} />
+        <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 30 }} />
       ) : error ? (
-        <Text style={styles.errorText}>{error}</Text>
+        <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
       ) : (
         <View style={styles.listWrapper}>
           <FlatList
@@ -173,22 +185,22 @@ export default function MisCitas() {
             onRefresh={fetchCitas} // Permite "pull-to-refresh"
             refreshing={loading}   // Muestra el indicador de carga en pull-to-refresh
             contentContainerStyle={{ paddingTop: 20 }}
-            ListEmptyComponent={<Text style={styles.emptyText}>Aún no tienes citas agendadas.</Text>}
+            ListEmptyComponent={<Text style={[styles.emptyText, { color: colors.subtitle }]}>Aún no tienes citas agendadas.</Text>}
           />
 
           <View style={styles.paginationContainer}>
             <TouchableOpacity
-              style={[styles.paginationButton, page === 1 && styles.paginationButtonDisabled]}
+              style={[styles.paginationButton, { backgroundColor: colors.primary }, page === 1 && styles.paginationButtonDisabled]}
               onPress={() => setPage((prev) => Math.max(1, prev - 1))}
               disabled={page === 1 || loading}
             >
               <Text style={[styles.paginationButtonText, page === 1 && styles.paginationButtonTextDisabled]}>Anterior</Text>
             </TouchableOpacity>
 
-            <Text style={styles.pageText}>Página {page}</Text>
+            <Text style={[styles.pageText, { color: colors.text }]}>Página {page}</Text>
 
             <TouchableOpacity
-              style={[styles.paginationButton, !hasNextPage && styles.paginationButtonDisabled]}
+              style={[styles.paginationButton, { backgroundColor: colors.primary }, !hasNextPage && styles.paginationButtonDisabled]}
               onPress={() => setPage((prev) => prev + 1)}
               disabled={!hasNextPage || loading}
             >
@@ -201,20 +213,19 @@ export default function MisCitas() {
   );
 }
 
-const InfoRow = ({ icon, text }) => (
+const InfoRow = ({ icon, text, colors }) => (
   <View style={styles.infoRow}>
-    <FontAwesome name={icon} size={16} color="#4B6AA3" style={styles.infoIcon} />
-    <Text style={styles.infoText}>{text}</Text>
+    <FontAwesome name={icon} size={16} color={colors.primary} style={styles.infoIcon} />
+    <Text style={[styles.infoText, { color: colors.text }]}>{text}</Text>
   </View>
 );
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 24, backgroundColor: '#F5F8FF' },
+  container: { flex: 1, padding: 24 },
   title: {
     fontSize: 28,
     textAlign: 'center',
     fontWeight: '800',
-    color: '#072B66',
     flex: 1,
   },
   headerContainer: {
@@ -228,7 +239,6 @@ const styles = StyleSheet.create({
   },
   filterContainer: {
     flexDirection: 'row',
-    backgroundColor: '#EAF1FF',
     borderRadius: 10,
     padding: 4,
     marginBottom: 10,
@@ -242,35 +252,26 @@ const styles = StyleSheet.create({
   filterButtonActive: {
     backgroundColor: '#FFFFFF',
     elevation: 2,
-    shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4
+    shadowColor: '#000', 
+    shadowOpacity: 0.1, 
+    shadowRadius: 4
   },
-  filterText: { color: '#0B4EF2', fontWeight: '600' },
-  filterTextActive: { color: '#0B4EF2', fontWeight: '800' },
+  filterText: { fontWeight: '600' },
+  filterTextActive: { fontWeight: '800' },
   card: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     marginBottom: 16,
-    shadowColor: '#072B66',
     shadowOpacity: 0.08,
     shadowRadius: 10,
     elevation: 5,
     overflow: 'hidden',
   },
   cardHeader: {
-    backgroundColor: '#EAF1FF',
     paddingVertical: 12,
     paddingHorizontal: 16,
   },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#0B4EF2',
-  },
-  cardSubtitle: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: '#36548B',
-  },
+  cardTitle: { fontSize: 16, fontWeight: '700' },
+  cardSubtitle: { fontSize: 13, fontWeight: '500' },
   cardBody: {
     padding: 16,
     gap: 12,
@@ -287,18 +288,15 @@ const styles = StyleSheet.create({
   infoText: {
     flex: 1,
     fontSize: 14,
-    color: '#36548B',
     lineHeight: 20,
   },
   errorText: {
     textAlign: 'center',
-    color: '#D9534F',
     marginTop: 30,
     fontSize: 16,
   },
   emptyText: {
     textAlign: 'center',
-    color: '#6B82B1',
     marginTop: 30,
     fontSize: 16,
   },
@@ -316,7 +314,6 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 14,
     borderRadius: 8,
-    backgroundColor: '#0B4EF2',
   },
   paginationButtonDisabled: {
     backgroundColor: '#B0C4DE',
@@ -329,7 +326,6 @@ const styles = StyleSheet.create({
     color: '#EAF1FF',
   },
   pageText: {
-    color: '#36548B',
     fontWeight: '700',
   },
 });

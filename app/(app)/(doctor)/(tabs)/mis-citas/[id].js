@@ -1,13 +1,16 @@
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTheme } from '../../../../../src/context/ThemeContext';
 
 const CDMX_TIME_ZONE = 'America/Mexico_City';
 
 export default function DoctorCitaDetalle() {
   const router = useRouter();
   const params = useLocalSearchParams();
+  const { colors, isDarkMode, statusBarStyle } = useTheme();
   const { cita: citaString } = params;
 
   const cita = citaString ? JSON.parse(citaString) : null;
@@ -32,8 +35,8 @@ export default function DoctorCitaDetalle() {
 
   if (!cita) {
     return (
-      <SafeAreaView style={styles.container}>
-        <Text style={styles.errorText}>No se pudo cargar la información de la cita.</Text>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <Text style={[styles.errorText, { color: colors.error }]}>No se pudo cargar la información de la cita.</Text>
       </SafeAreaView>
     );
   }
@@ -49,51 +52,66 @@ export default function DoctorCitaDetalle() {
   const clinicAddress = cita.clinicLocation.address || 'Dirección no disponible';
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <Stack.Screen options={{ headerShown: false }} />
+      <StatusBar style={statusBarStyle} />
 
       <View style={styles.headerRow}>
         <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.linkText}>← Mis Citas</Text>
+          <Text style={[styles.linkText, { color: colors.primary }]}>← Mis Citas</Text>
         </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>Cita con {patientName}</Text>
-            <Text style={styles.cardSubtitle}>ID de Cita: {cita.id}</Text>
+        <View style={[
+          styles.card, 
+          { 
+            backgroundColor: colors.card, 
+            shadowColor: isDarkMode ? '#000' : '#072B66',
+            borderWidth: isDarkMode ? 1 : 0,
+            borderColor: colors.border
+          }]}>
+          <View style={[styles.cardHeader, { backgroundColor: isDarkMode ? colors.border : '#E8EAF6', borderBottomColor: isDarkMode ? colors.border : '#C5CAE9' }]}>
+            <Text style={[styles.cardTitle, { color: colors.text }]}>Cita con {patientName}</Text>
+            <Text style={[styles.cardSubtitle, { color: isDarkMode ? colors.primary : '#3F51B5' }]}>ID de Cita: {cita.id}</Text>
           </View>
           <View style={styles.cardBody}>
-            <DetailRow icon="calendar" label="Fecha" value={appointmentDate} />
-            <DetailRow icon="clock-o" label="Horario" value={timeRange} />
-            <DetailRow icon="hospital-o" label="Ubicación" value={clinicAddress} />
+            <DetailRow icon="calendar" label="Fecha" value={appointmentDate} colors={colors} />
+            <DetailRow icon="clock-o" label="Horario" value={timeRange} colors={colors} />
+            <DetailRow icon="hospital-o" label="Ubicación" value={clinicAddress} colors={colors} />
           </View>
         </View>
 
-        <View style={styles.patientCard}>
-          <Text style={styles.sectionTitle}>Información del Paciente</Text>
-          <DetailRow icon="user" label="Nombre" value={cita.patient?.name} />
-          <DetailRow icon="envelope" label="Email" value={cita.patient?.email} />
-          <DetailRow icon="phone" label="Teléfono" value={cita.patient?.phoneNumber} />
+        <View style={[
+          styles.patientCard, 
+          { 
+            backgroundColor: colors.card, 
+            shadowColor: isDarkMode ? '#000' : '#072B66',
+            borderWidth: isDarkMode ? 1 : 0,
+            borderColor: colors.border
+          }]}>
+          <Text style={[styles.sectionTitle, { color: colors.text, borderBottomColor: colors.border }]}>Información del Paciente</Text>
+          <DetailRow icon="user" label="Nombre" value={cita.patient?.name} colors={colors} />
+          <DetailRow icon="envelope" label="Email" value={cita.patient?.email} colors={colors} />
+          <DetailRow icon="phone" label="Teléfono" value={cita.patient?.phoneNumber} colors={colors} />
         </View>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-const DetailRow = ({ icon, label, value }) => (
+const DetailRow = ({ icon, label, value, colors }) => (
   <View style={styles.detailRow}>
-    <FontAwesome name={icon} size={18} color="#4B6AA3" style={styles.detailIcon} />
+    <FontAwesome name={icon} size={18} color={colors.primary} style={styles.detailIcon} />
     <View style={styles.detailTextContainer}>
-      <Text style={styles.detailLabel}>{label}</Text>
-      <Text style={styles.detailValue}>{value || 'No disponible'}</Text>
+      <Text style={[styles.detailLabel, { color: colors.subtitle }]}>{label}</Text>
+      <Text style={[styles.detailValue, { color: colors.text }]}>{value || 'No disponible'}</Text>
     </View>
   </View>
 );
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F5F8FF' },
+  container: { flex: 1 },
   scrollContainer: { padding: 24, paddingTop: 10, paddingBottom: 40 },
   headerRow: {
     paddingHorizontal: 24,
@@ -101,14 +119,11 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
   },
   linkText: {
-    color: '#3F51B5',
     fontWeight: '700',
     fontSize: 16,
   },
   card: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 12,
-    shadowColor: '#072B66',
     shadowOpacity: 0.08,
     shadowRadius: 10,
     elevation: 5,
@@ -116,29 +131,23 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   patientCard: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 20,
-    shadowColor: '#072B66',
     shadowOpacity: 0.08,
     shadowRadius: 10,
     elevation: 5,
   },
   cardHeader: {
-    backgroundColor: '#E8EAF6',
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#C5CAE9',
   },
   cardTitle: {
     fontSize: 22,
     fontWeight: '800',
-    color: '#072B66',
   },
   cardSubtitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#3F51B5',
     marginTop: 4,
   },
   cardBody: {
@@ -148,10 +157,8 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#072B66',
     marginBottom: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#E8EAF6',
     paddingBottom: 10,
   },
   detailRow: {
@@ -169,18 +176,15 @@ const styles = StyleSheet.create({
   },
   detailLabel: {
     fontSize: 13,
-    color: '#6B82B1',
     marginBottom: 4,
   },
   detailValue: {
     fontSize: 16,
-    color: '#072B66',
     fontWeight: '600',
     lineHeight: 22,
   },
   errorText: {
     textAlign: 'center',
-    color: '#D9534F',
     marginTop: 30,
     fontSize: 16,
     padding: 24,
