@@ -1,6 +1,6 @@
 import { router } from "expo-router";
 import { useState } from "react";
-import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { ImageBackground, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 
 export default function DoctorForm2() {
 
@@ -17,6 +17,11 @@ const [openHour, setOpenHour] = useState("");
 const [closeHour, setCloseHour] = useState("");
 
 return (
+    <ImageBackground
+      source={require('../../assets/fondo.jpg')}
+      style={styles.backgroundImage}
+      resizeMode="cover"
+    >
     <ScrollView style={styles.container}>
     <Text style={styles.title}>Registro de Consultorio</Text>
 
@@ -82,11 +87,19 @@ return (
     </TouchableOpacity>
 
     </ScrollView>
+    </ImageBackground>
 );
 }
 
 const styles = StyleSheet.create({
-container: { flex: 1, padding: 20, backgroundColor: "#F8F8F8" },
+backgroundImage: {
+    flex: 1,
+},
+container: { 
+    flex: 1, 
+    padding: 20, 
+    backgroundColor: 'rgba(255, 255, 255, 0.7)' // Capa consistente con Login y Register
+},
 title: { fontSize: 22, fontWeight: "700", textAlign: "center", marginBottom: 20 },
 label: { marginTop: 10, fontSize: 14, fontWeight: "600" },
 input: {

@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useRouter } from 'expo-router';
+import { useState } from 'react';
+import { ActivityIndicator, Alert, ImageBackground, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../../src/context/AuthContext';
 import { createDoctor } from '../../../src/services/doctorService';
 
@@ -45,6 +45,11 @@ export default function CreateDoctorProfileScreen() {
   };
 
   return (
+    <ImageBackground
+      source={require('../../../assets/fondo.jpg')}
+      style={styles.backgroundImage}
+      resizeMode="cover"
+    >
     <SafeAreaView style={styles.container}>
       <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.content}>
@@ -85,11 +90,19 @@ export default function CreateDoctorProfileScreen() {
         </TouchableOpacity>
       </View>
     </SafeAreaView>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F5F8FF', justifyContent: 'center' },
+  backgroundImage: {
+    flex: 1,
+  },
+  container: { 
+    flex: 1, 
+    backgroundColor: 'rgba(255, 255, 255, 0.7)', // Capa consistente con Login/Register
+    justifyContent: 'center' 
+  },
   content: { padding: 24 },
   title: { fontSize: 28, fontWeight: '800', color: '#072B66', textAlign: 'center' },
   subtitle: { fontSize: 16, color: '#6B82B1', textAlign: 'center', marginTop: 8, marginBottom: 30 },
