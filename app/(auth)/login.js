@@ -85,8 +85,10 @@ export default function App() {
       </TouchableOpacity>
 
       <Text style={styles.privacyText}>
-        Al continuar ceptas los terminos y condiciones y la{' '}
-        <Text style={styles.link}>Política de privacidad</Text>
+        Al continuar aceptas los términos y condiciones y la{' '}
+        <Text style={styles.link} onPress={() => router.push('/politicasprivaci')}>
+          Política de privacidad
+        </Text>
       </Text>
 
       <StatusBar style="auto" />
