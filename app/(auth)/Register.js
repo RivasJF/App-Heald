@@ -63,7 +63,7 @@ export default function Register() {
 
     // Si todas las validaciones pasan, continuamos
     router.push({
-      pathname: '/user',
+      pathname: '/verificacion',
       params: {
         nombre,
         telefono: formattedTelefono,

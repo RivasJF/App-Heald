@@ -15,6 +15,7 @@ export default function AuthLayout() {
       <Stack.Screen name="registrocons" />
       <Stack.Screen name="registrover2" />
       <Stack.Screen name="user" />
+      <Stack.Screen name="verificacion" />
       <Stack.Screen name="politicasprivaci" />
     </Stack>
   );
