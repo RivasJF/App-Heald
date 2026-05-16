@@ -2,13 +2,13 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, Alert, ImageBackground, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { useRegister } from '../../src/hooks/user/useRegister.hook';
+import { useRequestCode } from '../../src/hooks/user/useRequestCode.hook';
 import { useRegisterStore } from '../../src/store/register.store';
 
 export default function Register() {
   // Zustand store
-  const { name, email, telefono, password, confirmPassword, birthDate, role, setName, setEmail, setTelefono, setPassword, setConfirmPassword, setBirthDate, reset } = useRegisterStore();
-  const { mutateAsync: registerUser, isPending: loading } = useRegister();
+  const { name, email, telefono, password, confirmPassword, birthDate, role, setName, setEmail, setTelefono, setPassword, setConfirmPassword, setBirthDate } = useRegisterStore();
+  const { mutateAsync: sendCode, isPending: loading } = useRequestCode();
 
   const [date, setDate] = useState(null); 
   const [showPicker, setShowPicker] = useState(false);
@@ -65,32 +65,15 @@ export default function Register() {
         return;
     }
 
-    // Construir objeto de datos para la API
-    const userData = {
-      name,
-      email,
-      password,
-      phoneNumber: formattedTelefono,
-      birthDate,
-      role, // El rol fue guardado en user.js
-    };
-
-    console.log("Enviando datos a la API:", userData);
-
-    // Si todas las validaciones pasan, enviamos a la API
     try {
-      await registerUser(userData);
-      Alert.alert(
-        "Registro Exitoso",
-        "Tu cuenta ha sido creada. Ahora puedes iniciar sesión."
-      );
-      // Resetear store después del registro exitoso
-      reset();
-      // Navegar a login
-      router.push("/login");
+      await sendCode({ email });
+      Alert.alert("Codigo enviado", "Revisa tu correo e ingresa el codigo de verificacion.");
+      // Persistimos el telefono formateado para usarlo en el registro final despues de verificar codigo.
+      setTelefono(formattedTelefono);
+      router.push('/verificacion');
     } catch (error) {
       const errorMessage = error.message || "Ocurrió un error desconocido.";
-      Alert.alert("Error de Registro", errorMessage);
+      Alert.alert("Error al enviar codigo", errorMessage);
     }
   };
 

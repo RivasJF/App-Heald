@@ -8,6 +8,21 @@ const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));//delay pa
 
 
 // --- Peticiones Públicas ---
+/**
+ * Registra un nuevo usuario en el sistema. (POST /users/register)
+ * @param {object} requestCode - Los datos del usuario a registrar.
+ * @param {string} userData.email - Correo electrónico.
+ * @returns {Promise<object>} La respuesta del servidor.
+ */
+export const requestCode = async (requestEmail) => {
+  try {
+    // Se hace la petición al endpoint de registro de tu API
+    const response = await api.post(USER_BASE_PATH+"/send-code", requestEmail);
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+};
 
 /**
  * Registra un nuevo usuario en el sistema. (POST /users/register)
@@ -18,6 +33,7 @@ const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));//delay pa
  * @param {string} userData.phoneNumber - Número de teléfono.
  * @param {string} userData.birthDate - Fecha de nacimiento en formato ISO (YYYY-MM-DDTHH:mm:ss.sssZ).
  * @param {string} userData.role - Rol del usuario ('CLIENT' o 'DOCTOR').
+ * @param {string} userData.code .
  * @returns {Promise<object>} La respuesta del servidor.
  */
 export const registerUser = async (userData) => {

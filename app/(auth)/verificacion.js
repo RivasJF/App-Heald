@@ -2,6 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
 import {
+    ActivityIndicator,
     Alert,
     ImageBackground,
     StyleSheet,
@@ -10,43 +11,78 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
+import { useRegister } from '../../src/hooks/user/useRegister.hook';
+import { useRequestCode } from '../../src/hooks/user/useRequestCode.hook';
+import { useRegisterStore } from '../../src/store/register.store';
 
 export default function VerificacionAutenticidad() {
     const registrationData = useLocalSearchParams();
+    const { name, email, telefono, password, birthDate, role, reset } = useRegisterStore();
+    const { mutateAsync: registerUser, isPending: registering } = useRegister();
+    const { mutateAsync: requestCode, isPending: resendingCode } = useRequestCode();
     const [codigo, setCodigo] = useState('');
     const [intentos, setIntentos] = useState(3);
-    const CODIGO_CORRECTO = "123456"; // Código de ejemplo (esto vendría de tu backend)
 
-    const handleVerificar = () => {
+    const getErrorMessage = (error) => {
+        if (typeof error === 'string') return error;
+        if (error?.message) return error.message;
+        if (error?.error) return error.error;
+        return 'Ocurrio un error inesperado.';
+    };
+
+    const handleVerificar = async () => {
         if (!codigo) {
             Alert.alert("Campo vacío", "Por favor ingresa el código enviado a tu correo.");
             return;
         }
 
-        if (codigo === CODIGO_CORRECTO) {
-            Alert.alert("Éxito", "Identidad verificada correctamente.");
-            // Redirigimos a la pantalla de selección de usuario pasando los datos originales
-            router.push({
-                pathname: '/user',
-                params: registrationData
+        if (codigo.length !== 6) {
+            Alert.alert('Codigo invalido', 'El codigo debe tener 6 digitos.');
+            return;
+        }
+
+        if (!name || !email || !telefono || !password || !birthDate || !role) {
+            Alert.alert('Datos incompletos', 'No encontramos los datos del registro. Completa el formulario nuevamente.');
+            router.replace('/Register');
+            return;
+        }
+
+        try {
+            await registerUser({
+                name,
+                email,
+                password,
+                phoneNumber: telefono,
+                birthDate,
+                role,
+                code: codigo,
             });
-        } else {
+
+            Alert.alert('Registro exitoso', 'Tu cuenta ha sido creada. Ahora puedes iniciar sesion.');
+            reset();
+            router.replace('/login');
+        } catch (error) {
             const nuevosIntentos = intentos - 1;
             setIntentos(nuevosIntentos);
             
             if (nuevosIntentos > 0) {
-                Alert.alert("Código Incorrecto", `Te quedan ${nuevosIntentos} intentos.`);
+                Alert.alert('Codigo incorrecto', `${getErrorMessage(error)} Te quedan ${nuevosIntentos} intentos.`);
             } else {
-                Alert.alert("Sin intentos", "Has agotado tus intentos. Por favor, solicita un nuevo código.");
+                Alert.alert('Sin intentos', 'Has agotado tus intentos. Por favor, solicita un nuevo codigo.');
                 setCodigo('');
             }
         }
     };
 
-    const handleReenviar = () => {
-        setIntentos(3);
-        setCodigo('');
-        Alert.alert("Código Enviado", `Se ha enviado un nuevo código a: ${registrationData.email}`);
+    const handleReenviar = async () => {
+        try {
+            await requestCode({ email });
+            setIntentos(3);
+            setCodigo('');
+            Alert.alert('Codigo enviado', `Se ha enviado un nuevo codigo a: ${email || registrationData.email}`);
+        } catch (error) {
+            Alert.alert('Error al reenviar', getErrorMessage(error));
+        }
     };
 
     return (
@@ -86,13 +122,15 @@ export default function VerificacionAutenticidad() {
                 <TouchableOpacity 
                     style={[styles.buttonPrimary, intentos === 0 && styles.buttonDisabled]} 
                     onPress={handleVerificar}
-                    disabled={intentos === 0}
+                    disabled={intentos === 0 || registering}
                 >
-                    <Text style={styles.buttonText}>Continuar</Text>
+                    <Text style={styles.buttonText}>{registering ? 'Validando...' : 'Continuar'}</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.buttonSecondary} onPress={handleReenviar}>
-                    <Text style={styles.buttonSecondaryText}>Reenviar Código</Text>
+                {registering && <ActivityIndicator style={{ marginBottom: 15 }} size="small" color="#4CAFED" />}
+
+                <TouchableOpacity style={styles.buttonSecondary} onPress={handleReenviar} disabled={resendingCode}>
+                    <Text style={styles.buttonSecondaryText}>{resendingCode ? 'Reenviando...' : 'Reenviar Codigo'}</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity onPress={() => router.back()}>
