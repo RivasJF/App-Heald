@@ -1,22 +1,27 @@
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Alert, ImageBackground, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, ImageBackground, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { registerUser } from '../../src/services/userServices';
+import { useRegisterStore } from '../../src/store/register.store';
 
 export default function Register() {
-
-  const [nombre, setNombre] = useState('');
-  const [telefono, setTelefono] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  // Zustand store
+  const { name, email, telefono, password, confirmPassword, birthDate, role, setName, setEmail, setTelefono, setPassword, setConfirmPassword, setBirthDate, reset } = useRegisterStore();
+  const [loading, setLoading] = useState(false);
 
   const [date, setDate] = useState(null); 
   const [showPicker, setShowPicker] = useState(false);
 
   const handleDateChange = (event, selectedDate) => {
     setShowPicker(false);
-    if (selectedDate) setDate(selectedDate);
+    if (selectedDate) {
+      setDate(selectedDate);
+      const day = selectedDate.getDate().toString().padStart(2, "0");
+      const month = (selectedDate.getMonth() + 1).toString().padStart(2, "0");
+      const year = selectedDate.getFullYear();
+      setBirthDate(`${year}-${month}-${day}`);
+    }
   };
 
   // Formato para mostrar en la UI: DD/MM/AAAA
@@ -28,17 +33,10 @@ export default function Register() {
     return `${day}/${month}/${year}`;
   };
 
-  // Formato para enviar a la API: YYYY-MM-DDTHH:mm:ss.sssZ
-  const formatApiDate = (d) => {
-    const day = d.getDate().toString().padStart(2, "0");
-    const month = (d.getMonth() + 1).toString().padStart(2, "0");
-    const year = d.getFullYear(); 
-    return `${year}-${month}-${day}`;
-  };
 
-  const handleRegister = () => {
+  const handleRegister = async () => {
     // 1. Validación de campos vacíos
-    if (!nombre || !telefono || !email || !password || !confirmPassword || !date) {
+    if (!name || !telefono || !email || !password || !confirmPassword || !date) {
       Alert.alert('Campos Incompletos', 'Por favor, rellena todos los campos.');
       return;
     }
@@ -53,7 +51,13 @@ export default function Register() {
       return;
     }
 
-    // 3. Formateo del número de teléfono
+    // 3. Validación de rol
+    if (!role) {
+      Alert.alert('Rol no seleccionado', 'Por favor, vuelve atrás y selecciona tu tipo de usuario.');
+      return;
+    }
+
+    // 4. Formateo del número de teléfono
     const cleanedPhone = telefono.replace(/\s+/g, ''); // Elimina espacios
     const formattedTelefono = cleanedPhone.startsWith('+52') ? cleanedPhone : `+52${cleanedPhone}`;
     if (formattedTelefono.length !== 13) { // +52 y 10 dígitos
@@ -61,17 +65,37 @@ export default function Register() {
         return;
     }
 
-    // Si todas las validaciones pasan, continuamos
-    router.push({
-      pathname: '/verificacion',
-      params: {
-        nombre,
-        telefono: formattedTelefono,
-        fechaNacimiento: formatApiDate(date),
-        email,
-        password, // Nota: En una app real, evita pasar contraseñas así.
-      },
-    });
+    // Construir objeto de datos para la API
+    const userData = {
+      name,
+      email,
+      password,
+      phoneNumber: formattedTelefono,
+      birthDate,
+      role, // El rol fue guardado en user.js
+    };
+
+    console.log("Enviando datos a la API:", userData);
+
+    // Si todas las validaciones pasan, enviamos a la API
+    setLoading(true);
+    try {
+      await registerUser(userData);
+      Alert.alert(
+        "Registro Exitoso",
+        "Tu cuenta ha sido creada. Ahora puedes iniciar sesión."
+      );
+      // Resetear store después del registro exitoso
+      reset();
+      // Navegar a login
+      router.push("/login");
+    } catch (error) {
+      const errorMessage = error.message || "Ocurrió un error desconocido.";
+      Alert.alert("Error de Registro", errorMessage);
+      console.error("Detalles del error de registro:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -91,8 +115,8 @@ export default function Register() {
       <TextInput
         style={styles.input}
         placeholder="Nombre completo"
-        value={nombre}
-        onChangeText={setNombre}
+        value={name}
+        onChangeText={setName}
         placeholderTextColor="#999"
       />
 
@@ -160,13 +184,16 @@ export default function Register() {
       <TouchableOpacity
         style={styles.buttonPrimary} 
         onPress={handleRegister}
+        disabled={loading}
       >
-        <Text style={styles.buttonPrimaryText}>Continuar</Text>
+        <Text style={styles.buttonPrimaryText}>{loading ? "Registrando..." : "Registrarse"}</Text>
       </TouchableOpacity>
 
+      {loading && <ActivityIndicator style={{ marginTop: 20 }} size="large" color="#4CAFED" />}
+
       {/* VOLVER */}
-      <TouchableOpacity onPress={() => router.push('/login')}>
-        <Text style={styles.backToLogin}>Volver al inicio</Text>
+      <TouchableOpacity onPress={() => router.push('/user')} disabled={loading}>
+        <Text style={styles.backToLogin}>Volver a seleccionar rol</Text>
       </TouchableOpacity>
 
       </View>

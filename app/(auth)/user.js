@@ -1,42 +1,16 @@
-import { router, useLocalSearchParams } from "expo-router";
-import { useState } from "react";
-import { ActivityIndicator, Alert, ImageBackground, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { registerUser } from "../../src/services/userServices";
+import { router } from "expo-router";
+import { ImageBackground, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useRegisterStore } from "../../src/store/register.store";
 
 export default function User() {
-  // 1. Recibimos los parámetros de la pantalla de registro
-  const registrationData = useLocalSearchParams();
-  const [loading, setLoading] = useState(false);
+  // Guardamos el rol seleccionado en el store y navegamos a registro
+  const { setRole } = useRegisterStore();
 
-  // 2. Creamos una función para manejar la selección del tipo de usuario
-  const handleUserTypeSelection = async (userType) => {
-    const userData = {
-      name: registrationData.nombre,
-      email: registrationData.email,
-      password: registrationData.password,
-      phoneNumber: registrationData.telefono, // Asegúrate que el formato sea el esperado por tu API
-      birthDate: registrationData.fechaNacimiento,
-      role: userType, // 'CLIENT' o 'DOCTOR'
-    };
-
-    console.log("Enviando datos a la API:", userData);
-
-    setLoading(true);
-    try {
-      await registerUser(userData);
-      Alert.alert(
-        "Registro Exitoso",
-        "Tu cuenta ha sido creada. Ahora puedes iniciar sesión."
-      );
-      // 3. Navegamos a login después del registro exitoso
-      router.push("/login");
-    } catch (error) {
-      const errorMessage = error.message || "Ocurrió un error desconocido.";
-      Alert.alert("Error de Registro", errorMessage);
-      console.error("Detalles del error de registro:", error);
-    } finally {
-      setLoading(false);
-    }
+  const handleUserTypeSelection = (userType) => {
+    // Guardar rol en el store
+    setRole(userType);
+    // Navegar a registro
+    router.push('/Register');
   };
 
   return (
@@ -50,16 +24,14 @@ export default function User() {
         <Text style={styles.title}>Selecciona tu tipo de usuario</Text>
 
         {/* BOTÓN PACIENTE */}
-        <TouchableOpacity style={styles.button} onPress={() => handleUserTypeSelection('CLIENT')} disabled={loading}>
+        <TouchableOpacity style={styles.button} onPress={() => handleUserTypeSelection('CLIENT')}>
             <Text style={styles.buttonText}>Soy Paciente</Text>
         </TouchableOpacity>
 
         {/* BOTÓN DOCTOR */}
-        <TouchableOpacity style={styles.button} onPress={() => handleUserTypeSelection('DOCTOR')} disabled={loading}>
+        <TouchableOpacity style={styles.button} onPress={() => handleUserTypeSelection('DOCTOR')}>
             <Text style={styles.buttonText}>Soy Doctor</Text>
         </TouchableOpacity>
-
-        {loading && <ActivityIndicator style={{ marginTop: 20 }} size="large" color="#4CAFED" />}
 
       </View>
     </ImageBackground>

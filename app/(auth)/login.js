@@ -80,7 +80,7 @@ export default function App() {
 
       {(loading || authLoading) && <ActivityIndicator style={{marginTop: 15}} size="large" color="#4CAFED" />}
 
-      <TouchableOpacity onPress={() => router.push('/Register')}>
+      <TouchableOpacity onPress={() => router.push('/user')}>
         <Text style={styles.registerText}>Registrarte</Text>
       </TouchableOpacity>
 
