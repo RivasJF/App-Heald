@@ -2,13 +2,13 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, Alert, ImageBackground, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { registerUser } from '../../src/services/userServices';
+import { useRegister } from '../../src/hooks/user/useRegister.hook';
 import { useRegisterStore } from '../../src/store/register.store';
 
 export default function Register() {
   // Zustand store
   const { name, email, telefono, password, confirmPassword, birthDate, role, setName, setEmail, setTelefono, setPassword, setConfirmPassword, setBirthDate, reset } = useRegisterStore();
-  const [loading, setLoading] = useState(false);
+  const { mutateAsync: registerUser, isPending: loading } = useRegister();
 
   const [date, setDate] = useState(null); 
   const [showPicker, setShowPicker] = useState(false);
@@ -78,7 +78,6 @@ export default function Register() {
     console.log("Enviando datos a la API:", userData);
 
     // Si todas las validaciones pasan, enviamos a la API
-    setLoading(true);
     try {
       await registerUser(userData);
       Alert.alert(
@@ -92,9 +91,6 @@ export default function Register() {
     } catch (error) {
       const errorMessage = error.message || "Ocurrió un error desconocido.";
       Alert.alert("Error de Registro", errorMessage);
-      console.error("Detalles del error de registro:", error);
-    } finally {
-      setLoading(false);
     }
   };
 
