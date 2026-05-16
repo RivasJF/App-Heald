@@ -3,13 +3,10 @@ import { ImageBackground, StyleSheet, Text, TouchableOpacity, View } from "react
 import { useRegisterStore } from "../../src/store/register.store";
 
 export default function User() {
-  // Guardamos el rol seleccionado en el store y navegamos a registro
   const { setRole } = useRegisterStore();
 
   const handleUserTypeSelection = (userType) => {
-    // Guardar rol en el store
     setRole(userType);
-    // Navegar a registro
     router.push('/Register');
   };
 
