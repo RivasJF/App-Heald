@@ -15,6 +15,9 @@ export default function AuthLayout() {
       <Stack.Screen name="user" />
       <Stack.Screen name="verificacion" />
       <Stack.Screen name="politicasprivaci" />
+      <Stack.Screen name="recuperar-contrasena" />
+      <Stack.Screen name="ingresar-codigo" />
+      <Stack.Screen name="nueva-contrasena" />
     </Stack>
   );
 }
