@@ -74,6 +74,10 @@ export default function App() {
         onChangeText={setPassword}
       />
 
+      <TouchableOpacity onPress={() => router.push('/recuperar-contrasena')}>
+        <Text style={styles.forgotPasswordText}>¿Olvidaste tu contraseña?</Text>
+      </TouchableOpacity>
+
       <TouchableOpacity style={styles.buttonPrimary} onPress={handleLogin} disabled={loading || authLoading}>
         <Text style={styles.buttonPrimaryText}>{(loading || authLoading) ? "Conectando..." : "Continuar"}</Text>
       </TouchableOpacity>
@@ -168,6 +172,15 @@ const styles = StyleSheet.create({
     color: '#0B4EF2',
     marginTop: 15,
     fontSize: 16,
+  },
+
+  forgotPasswordText: {
+    color: '#0B4EF2',
+    textDecorationLine: 'underline',
+    marginTop: 10,
+    marginBottom: 20,
+    fontSize: 14,
+    fontWeight: '500',
   },
 
   privacyText: {
