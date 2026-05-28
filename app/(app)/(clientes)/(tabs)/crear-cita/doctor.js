@@ -40,12 +40,24 @@ export default function DoctorScreen() {
         const responseData = await getNearbyClinicsPagination({
           lat: selectedLocation.latitude,
           lng: selectedLocation.longitude,
-          radius: 10000, // 10km
+          radius: selectedLocation.radius || 10000,
         }, page, PAGE_SIZE);
 
-        const nearbyClinics = Array.isArray(responseData)
+        let nearbyClinics = Array.isArray(responseData)
           ? responseData
           : (responseData?.data || responseData?.items || []);
+
+        // Filtrado local por especialidad o nombre si existe una búsqueda
+        if (selectedLocation.searchQuery) {
+          const query = selectedLocation.searchQuery.toLowerCase();
+          nearbyClinics = nearbyClinics.filter(clinic => {
+            const specialty = (clinic.doctor?.speciality || "").toLowerCase();
+            const doctorName = (clinic.doctor?.user?.name || "").toLowerCase();
+            const clinicName = (clinic.address || "").toLowerCase(); // Usamos dirección como proxy de nombre de clínica si no hay campo name
+            
+            return specialty.includes(query) || doctorName.includes(query) || clinicName.includes(query);
+          });
+        }
 
         const active = [];
         const inactive = [];
