@@ -10,10 +10,10 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
-import { useRequestCode } from '../../src/hooks/user/useRequestCode.hook';
+import { useSendCodeResetPassword } from '../../src/hooks/user/useSendCodeResetPassword.hook';
 
 export default function RecuperarContrasena() {
-    const { mutateAsync: sendCode, isPending: loading } = useRequestCode();
+    const { mutateAsync: sendCode, isPending: loading } = useSendCodeResetPassword();
     const [email, setEmail] = useState('');
 
     const validateEmail = (value) => {
@@ -29,6 +29,7 @@ export default function RecuperarContrasena() {
 
     if (!validateEmail(email)) {
         Alert.alert('Correo inválido', 'El correo es inválido, verifica y vuelve a intentarlo.');
+        return;
     }
 
     try {
@@ -37,7 +38,7 @@ export default function RecuperarContrasena() {
         'Código enviado',
         'Se ha enviado un código de verificación a tu correo.'
     );
-    router.push('/ingresar-codigo');
+    router.push({ pathname: '/ingresar-codigo', params: { email } });
     } catch (error) {
     const errorMessage = error.message || 'Error al enviar el código.';
     Alert.alert('Error', errorMessage);

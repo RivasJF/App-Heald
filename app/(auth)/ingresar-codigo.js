@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { useLocalSearchParams, router } from 'expo-router';
 import { useState } from 'react';
 import {
     Alert,
@@ -9,9 +9,17 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { useSendCodeResetPassword } from '../../src/hooks/user/useSendCodeResetPassword.hook';
+import { useValidateCodeResetPassword } from '../../src/hooks/user/useValidateCodeResetPassword.hook';
 export default function IngresarCodigo() {
+    const { email } = useLocalSearchParams();
     const [code, setCode] = useState('');
     const [loading, setLoading] = useState(false);
+    const { mutateAsync: validateCode } = useValidateCodeResetPassword();
+    const { mutateAsync: resendCode, isPending: resendingCode } = useSendCodeResetPassword();
+
+    const resolvedEmail = Array.isArray(email) ? email[0] : email;
+
 
 
     const handleVerifyCode = async () => {
@@ -27,14 +35,29 @@ export default function IngresarCodigo() {
 
     setLoading(true);
     try {
-      // Aquí va la lógica de verificación del código si se agrega en el futuro.
+        await validateCode({ email: resolvedEmail, code });
         Alert.alert('Código verificado', 'Ahora puedes continuar y cambiar tu contraseña.');
-        router.push('/nueva-contrasena');
+        router.push({ pathname: '/nueva-contrasena', params: { email: resolvedEmail } });
     } catch (error) {
         const errorMessage = error.message || 'Error al verificar el código.';
         Alert.alert('Error', errorMessage);
     } finally {
         setLoading(false);
+    }
+};
+
+    const handleResendCode = async () => {
+    if (!resolvedEmail) {
+        Alert.alert('Correo requerido', 'No pudimos recuperar el correo para reenviar el código.');
+        return;
+    }
+
+    try {
+        await resendCode({ email: resolvedEmail });
+        Alert.alert('Código reenviado', 'Se ha enviado un nuevo código a tu correo.');
+    } catch (error) {
+        const errorMessage = error.message || 'Error al reenviar el código.';
+        Alert.alert('Error', errorMessage);
     }
 };
 
@@ -77,8 +100,8 @@ return (
         </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => router.push('/recuperar-contrasena')}>
-        <Text style={styles.backText}>Volver a enviar código</Text>
+        <TouchableOpacity onPress={handleResendCode} disabled={resendingCode}>
+        <Text style={styles.backText}>{resendingCode ? 'Reenviando...' : 'Volver a enviar código'}</Text>
         </TouchableOpacity>
     </View>
     </ImageBackground>

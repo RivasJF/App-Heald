@@ -25,6 +25,53 @@ export const requestCode = async (requestEmail) => {
 };
 
 /**
+ * Envía un código para restablecer la contraseña. (POST /user/send-code-reset-password)
+ * @param {object} payload - Datos para solicitar el código.
+ * @param {string} payload.email - Correo electrónico del usuario.
+ * @returns {Promise<object>} La respuesta del servidor.
+ */
+export const sendCodeResetPassword = async (payload) => {
+  try {
+    const response = await api.post(`${USER_BASE_PATH}/send-code-reset-password`, payload);
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+};
+
+/**
+ * Valida el código para restablecer la contraseña. (POST /user/validate-code-reset-password)
+ * @param {object} payload - Datos de validación.
+ * @param {string} payload.email - Correo electrónico del usuario.
+ * @param {string} payload.code - Código recibido por correo.
+ * @returns {Promise<object>} La respuesta del servidor.
+ */
+export const validateCodeResetPassword = async (payload) => {
+  try {
+    const response = await api.post(`${USER_BASE_PATH}/validate-code-reset-password`, payload);
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+};
+
+/**
+ * Restablece la contraseña del usuario. (PATCH /user/reset-password)
+ * @param {object} payload - Datos para actualizar la contraseña.
+ * @param {string} payload.email - Correo electrónico del usuario.
+ * @param {string} payload.newPassword - Nueva contraseña.
+ * @returns {Promise<object>} La respuesta del servidor.
+ */
+export const resetPassword = async (payload) => {
+  try {
+    const response = await api.patch(`${USER_BASE_PATH}/reset-password`, payload);
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+};
+
+/**
  * Registra un nuevo usuario en el sistema. (POST /users/register)
  * @param {object} userData - Los datos del usuario a registrar.
  * @param {string} userData.name - Nombre completo del usuario.
@@ -123,3 +170,5 @@ export const deleteUser = async (id) => {
     throw error.response ? error.response.data : error;
   }
 };
+
+

@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { useLocalSearchParams, router } from 'expo-router';
 import { useState } from 'react';
 import {
     Alert,
@@ -9,11 +9,19 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { useAuth } from '../../src/context/AuthContext';
+import { useResetPassword } from '../../src/hooks/user/useResetPassword.hook';
 
 export default function NuevaContrasena() {
+    const { email, code } = useLocalSearchParams();
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [loading, setLoading] = useState(false);
+    const { signOut } = useAuth();
+    const { mutateAsync: savePassword } = useResetPassword();
+
+    const resolvedEmail = Array.isArray(email) ? email[0] : email;
+
 
     const handleSavePassword = async () => {
     if (!password || !confirmPassword) {
@@ -28,14 +36,20 @@ return;
 
     if (password !== confirmPassword) {
         Alert.alert('No coinciden', 'Las contraseñas no coinciden.');
-return;
+        return;
+    }
+
+    if (!resolvedEmail) {
+        Alert.alert('Datos faltantes', 'No encontramos el correo para restablecer la contraseña.');
+        return;
     }
 
     setLoading(true);
     try {
-      // Aquí se puede agregar la llamada al backend para cambiar la contraseña.
-    Alert.alert('Contraseña actualizada', 'Tu nueva contraseña ha sido guardada.');
-    router.replace('/login');
+        await savePassword({ email: resolvedEmail, newPassword: password });
+        await signOut();
+        Alert.alert('Contraseña actualizada', 'Tu nueva contraseña ha sido guardada.');
+        router.replace('/login');
     } catch (error) {
     const errorMessage = error.message || 'Error al guardar la contraseña.';
     Alert.alert('Error', errorMessage);
