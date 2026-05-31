@@ -1,9 +1,8 @@
-import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
 import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Alert, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, Linking, Platform, Pressable, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../../../../../src/context/ThemeContext';
 import { CitaContext } from './+context/CitaContext';
@@ -11,13 +10,6 @@ import { CitaContext } from './+context/CitaContext';
 const DEFAULT_LOCATION = {
   latitude: 40.7128,
   longitude: -74.0060,
-};
-
-const UI_COLORS = {
-  background: '#121826',
-  surface: '#1a2235',
-  accent: '#4ba3e3',
-  textSecondary: '#6B82B1',
 };
 
 const LOCATION_TIMEOUT_MS = 15000; // Aumentamos a 15 segundos para mayor estabilidad
@@ -99,18 +91,6 @@ export default function SelectLocationScreen() {
   const [webviewError, setWebviewError] = useState(false);
   const webviewRef = useRef(null);
 
-  // Estados para la Búsqueda y Filtros
-  const SNAP_VALUES = [1, 5, 10, 20];
-  const [searchQuery, setSearchQuery] = useState("");
-  const [showFilters, setShowFilters] = useState(false);
-  const [tempDistanceRange, setTempDistanceRange] = useState(10);
-  const [distanceRange, setDistanceRange] = useState(10);
-  const [sliderWidth, setSliderWidth] = useState(0);
-  const [isInputtingAddress, setIsInputtingAddress] = useState(false);
-  const [manualAddressInput, setManualAddressInput] = useState("");
-  const [backupLocation, setBackupLocation] = useState(null);
-  const [backupAddress, setBackupAddress] = useState(null);
-
   const WebView = useMemo(() => {
     try {
       return require('react-native-webview').WebView;
@@ -184,44 +164,13 @@ export default function SelectLocationScreen() {
     }
   }, [fetchAddress, getCurrentCoords]);
 
-  const handleManualAddressSubmit = async () => {
-    if (!manualAddressInput.trim()) return;
-    setIsLoading(true);
-    try {
-      const result = await Location.geocodeAsync(manualAddressInput);
-      if (result.length > 0) {
-        const newCoords = { latitude: result[0].latitude, longitude: result[0].longitude };
-        setLocation(newCoords);
-        await fetchAddress(newCoords);
-        setIsInputtingAddress(false);
-      } else {
-        Alert.alert("No encontrado", "No pudimos localizar esa dirección.");
-      }
-    } catch (error) {
-      Alert.alert("Error", "Ocurrió un error al buscar la dirección.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleSliderTouch = (evt) => {
-    const x = evt.nativeEvent.locationX;
-    if (sliderWidth > 0) {
-      const ratio = Math.max(0, Math.min(1, x / sliderWidth));
-      const index = Math.round(ratio * (SNAP_VALUES.length - 1));
-      setTempDistanceRange(SNAP_VALUES[index]);
-    }
-  };
-
   const handleConfirmLocation = useCallback(() => {
     if (!location) return Alert.alert('Error', 'No hay ubicación seleccionada');
     try {
       if (typeof setSelectedLocation === 'function') {
         setSelectedLocation({ 
           ...location, 
-          address, 
-          radius: distanceRange * 1000, // Guardamos el radio en metros para la API
-          searchQuery: searchQuery.trim(), // Enviamos el texto de búsqueda
+          address,
         });
       } else {
         console.warn('CitaContext no proporciona setSelectedLocation');
@@ -236,7 +185,7 @@ export default function SelectLocationScreen() {
       console.error('Error en handleConfirmLocation:', err);
       Alert.alert('Error', 'No se pudo confirmar la ubicación.');
     }
-  }, [address, location, router, setSelectedLocation, distanceRange, searchQuery]);
+  }, [address, location, router, setSelectedLocation]);
 
   const openExternalMap = useCallback(async (coords) => {
     try {
@@ -279,19 +228,6 @@ export default function SelectLocationScreen() {
     const js = `window.centerOn(${location.latitude}, ${location.longitude});true;`;
     webviewRef.current.injectJavaScript(js);
   }, [location]);
-
-  const handleCancelFilters = useCallback(() => {
-    if (backupLocation) {
-      setLocation(backupLocation);
-      webviewRef.current?.injectJavaScript(`window.centerOn(${backupLocation.latitude}, ${backupLocation.longitude});true;`);
-    }
-    if (backupAddress) setAddress(backupAddress);
-    setIsInputtingAddress(false);
-    setManualAddressInput("");
-    setBackupLocation(null);
-    setBackupAddress(null);
-    setShowFilters(false);
-  }, [backupLocation, backupAddress, location]);
 
   const renderMapContent = () => {
     if (!WebView || webviewError) {
@@ -367,33 +303,6 @@ export default function SelectLocationScreen() {
       <View style={styles.mapContainer}>
         {renderMapContent()}
 
-        {/* 1. Barra de Búsqueda Superior Flotante */}
-        <View style={styles.searchBarContainer}>
-          <View style={[styles.searchBar, { 
-              backgroundColor: isDarkMode ? 'rgba(26, 34, 53, 0.96)' : 'rgba(255, 255, 255, 0.96)',
-              borderColor: isDarkMode ? 'rgba(75, 163, 227, 0.3)' : 'rgba(0, 0, 0, 0.1)'
-          }]}>
-            <Ionicons name="search" size={20} color={UI_COLORS.textSecondary} style={{ marginLeft: 15 }} />
-            <TextInput 
-              placeholder="Buscar Especialidad, Doctor o Clínica"
-              placeholderTextColor={UI_COLORS.textSecondary}
-              style={[styles.searchInput, { color: isDarkMode ? 'white' : colors.text }]}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-            />
-            <TouchableOpacity 
-              style={[styles.filterIconButton, { backgroundColor: isDarkMode ? UI_COLORS.accent : colors.primary }]}
-              onPress={() => {
-                setBackupLocation(location);
-                setBackupAddress(address);
-                setTempDistanceRange(distanceRange);
-                setShowFilters(true);
-              }}
-            >
-              <Ionicons name="options-outline" size={22} color="white" />
-            </TouchableOpacity>
-          </View>
-        </View>
       </View>
 
       <View style={[
@@ -421,101 +330,6 @@ export default function SelectLocationScreen() {
         </View>
       </View>
 
-      {/* 2. Panel de Filtros (Bottom Sheet Modal) */}
-      <Modal
-        visible={showFilters}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={handleCancelFilters}
-      >
-        <View style={styles.modalOverlay}>
-          <Pressable style={{ flex: 1 }} onPress={handleCancelFilters} />
-          <View style={[styles.bottomSheet, { backgroundColor: colors.card }]}>
-            <View style={[styles.sheetHandle, { backgroundColor: colors.border }]} />
-            
-            <ScrollView showsVerticalScrollIndicator={false}>
-              {/* Sección Ubicación */}
-              <Text style={[styles.sheetSectionTitle, { color: colors.text }]}>Ubicación</Text>
-              {isInputtingAddress ? (
-                <View style={[styles.locationInputContainer, { backgroundColor: isDarkMode ? '#121826' : colors.background }]}>
-                  <TextInput
-                    style={[styles.locationDisplay, { color: isDarkMode ? 'white' : colors.text }]}
-                    value={manualAddressInput}
-                    onChangeText={setManualAddressInput}
-                    placeholder="Escribe una dirección..."
-                    placeholderTextColor={colors.subtitle}
-                    autoFocus
-                    onSubmitEditing={handleManualAddressSubmit}
-                  />
-                  <TouchableOpacity onPress={handleManualAddressSubmit}>
-                    <Ionicons name="search" size={22} color={isDarkMode ? UI_COLORS.accent : colors.primary} />
-                  </TouchableOpacity>
-                </View>
-              ) : (
-                <View style={[styles.locationInputContainer, { backgroundColor: isDarkMode ? '#121826' : colors.background }]}>
-                  <Ionicons name="location" size={20} color={isDarkMode ? UI_COLORS.accent : colors.primary} />
-                  <Text style={[styles.locationDisplay, { color: isDarkMode ? 'white' : colors.text }]} numberOfLines={1}>{address}</Text>
-                  <TouchableOpacity onPress={handleRefreshLocation}>
-                    <Ionicons name="locate" size={22} color={isDarkMode ? UI_COLORS.accent : colors.primary} />
-                  </TouchableOpacity>
-                </View>
-              )}
-              
-              <View style={styles.quickActionContainer}>
-                <TouchableOpacity style={[styles.quickActionButton, { backgroundColor: isDarkMode ? UI_COLORS.accent : colors.primary }]} onPress={handleRefreshLocation}>
-                  <Text style={styles.quickActionText}>Ubicación Actual</Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={[styles.quickActionButton, { backgroundColor: isDarkMode ? '#252d41' : colors.border }]}
-                  onPress={() => setIsInputtingAddress(!isInputtingAddress)}
-                >
-                  <Text style={[styles.quickActionText, { color: isDarkMode ? 'white' : colors.text }]}>Ingresar Dirección</Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Sección Rango de Distancia */}
-              <Text style={[styles.sheetSectionTitle, { color: colors.text }]}>Rango de Distancia</Text>
-              <View style={styles.sliderContainer}>
-                {(() => {
-                  const percentage = (SNAP_VALUES.indexOf(tempDistanceRange) / (SNAP_VALUES.length - 1)) * 100;
-                  return (
-                <View 
-                  style={[styles.sliderTrack, { backgroundColor: isDarkMode ? '#121826' : colors.border }]}
-                  onLayout={(e) => setSliderWidth(e.nativeEvent.layout.width)}
-                  onStartShouldSetResponder={() => true}
-                  onResponderGrant={handleSliderTouch}
-                  onResponderMove={handleSliderTouch}
-                >
-                      <View pointerEvents="none" style={[styles.sliderFill, { backgroundColor: isDarkMode ? UI_COLORS.accent : colors.primary, width: `${percentage}%` }]} />
-                      <View pointerEvents="none" style={[styles.sliderThumb, { borderColor: isDarkMode ? UI_COLORS.accent : colors.primary, left: `${percentage}%` }]} />
-                </View>
-                  );
-                })()}
-                <View style={styles.sliderLabels}>
-                  <Text style={styles.sliderLabelText}>1km</Text>
-                  <Text style={styles.sliderLabelText}>5km</Text>
-                  <Text style={styles.sliderLabelText}>10km</Text>
-                  <Text style={styles.sliderLabelText}>+20km</Text>
-                </View>
-                <Text style={[styles.dynamicDistanceText, { color: isDarkMode ? UI_COLORS.accent : colors.primary }]}>A menos de {tempDistanceRange} km a la redonda</Text>
-              </View>
-
-              <TouchableOpacity 
-                style={[styles.applyFiltersButton, { backgroundColor: isDarkMode ? UI_COLORS.accent : colors.primary }]}
-                onPress={() => {
-                  setDistanceRange(tempDistanceRange);
-                  setBackupLocation(null);
-                  setBackupAddress(null);
-                  setShowFilters(false);
-                }}
-              >
-                <Text style={styles.applyFiltersText}>Aplicar Filtros</Text>
-              </TouchableOpacity>
-              <View style={{ height: 40 }} />
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
     </SafeAreaView>
   );
 }
@@ -540,149 +354,6 @@ const styles = StyleSheet.create({
     flex: 0.64,
     width: '100%',
     position: 'relative',
-  },
-  searchBarContainer: {
-    position: 'absolute',
-    top: 10,
-    left: 15,
-    right: 15,
-    zIndex: 100,
-  },
-  searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    height: 52,
-    borderRadius: 26,
-    borderWidth: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 12,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 14,
-    paddingHorizontal: 10,
-  },
-  filterIconButton: {
-    backgroundColor: '#4ba3e3',
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 7,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    justifyContent: 'flex-end',
-  },
-  bottomSheet: {
-    backgroundColor: '#1a2235',
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-    padding: 20,
-    maxHeight: '85%',
-  },
-  sheetHandle: {
-    width: 40,
-    height: 5,
-    backgroundColor: '#252d41',
-    borderRadius: 3,
-    alignSelf: 'center',
-    marginBottom: 20,
-  },
-  sheetSectionTitle: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: '800',
-    marginBottom: 15,
-    marginTop: 10,
-  },
-  locationInputContainer: {
-    flexDirection: 'row',
-    backgroundColor: '#121826',
-    padding: 15,
-    borderRadius: 16,
-    alignItems: 'center',
-  },
-  locationDisplay: {
-    flex: 1,
-    color: 'white',
-    marginHorizontal: 10,
-    fontSize: 12,
-  },
-  quickActionContainer: {
-    flexDirection: 'row',
-    marginTop: 15,
-    gap: 10,
-  },
-  quickActionButton: {
-    flex: 1,
-    height: 45,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  quickActionText: {
-    color: 'white',
-    fontWeight: '700',
-    fontSize: 12,
-  },
-  sliderContainer: { marginTop: 10 },
-  sliderTrack: { height: 16, backgroundColor: '#121826', borderRadius: 8, position: 'relative' },
-  sliderFill: { height: 16, backgroundColor: '#4ba3e3', borderRadius: 8 },
-  sliderThumb: { width: 24, height: 24, borderRadius: 12, backgroundColor: 'white', position: 'absolute', top: -4, borderWidth: 2, borderColor: '#4ba3e3' },
-  sliderLabels: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 },
-  sliderLabelText: { color: '#6B82B1', fontSize: 10 },
-  dynamicDistanceText: { color: '#4ba3e3', textAlign: 'center', marginTop: 15, fontWeight: '700' },
-  specialtiesGrid: { 
-    flexDirection: 'row', 
-    flexWrap: 'wrap', 
-    justifyContent: 'space-between',
-    marginTop: 5 
-  },
-  specialtyCard: { 
-    width: '48%', 
-    backgroundColor: '#121826',
-    padding: 15,
-    borderRadius: 16,
-    alignItems: 'center', 
-    marginBottom: 12 
-  },
-  specialtyCardActive: {
-    borderColor: '#4ba3e3',
-    borderWidth: 2,
-  },
-  specialtyIconCircle: { 
-    width: 60, 
-    height: 60, 
-    borderRadius: 30, 
-    backgroundColor: '#1a2235', 
-    justifyContent: 'center', 
-    alignItems: 'center', 
-    marginBottom: 8 
-  },
-  specialtyName: { 
-    color: 'white', 
-    fontSize: 12, 
-    textAlign: 'center',
-    fontWeight: '600'
-  },
-  applyFiltersButton: {
-    backgroundColor: '#4ba3e3',
-    height: 55,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  applyFiltersText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '800',
   },
   webview: { 
     flex: 1,
