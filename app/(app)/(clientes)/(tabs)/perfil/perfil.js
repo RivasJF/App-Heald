@@ -1,143 +1,276 @@
-import { Stack, Link } from 'expo-router';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { useAuth } from '../../../../../src/context/AuthContext';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
-import { useEffect, useState } from 'react';
-import { getProfile } from '../../../../../src/services/authService';
+import { Stack, useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useState } from 'react';
+import { ActivityIndicator, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAuth } from '../../../../../src/context/AuthContext';
+import { useTheme } from '../../../../../src/context/ThemeContext';
+import { findByPatient } from '../../../../../src/services/appointmentService';
 
-export default function Perfil() {
-  const { signOut } = useAuth();
-  const [profile, setProfile] = useState(null);
+export default function PatientProfileScreen() {
+  const router = useRouter();
+  const { user, signOut } = useAuth();
+  const { isDarkMode, colors, toggleTheme } = useTheme();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [stats, setStats] = useState({ appointments: 0, doctors: 0, history: 0 });
 
-  useEffect(() => {
-    const fetchProfile = async () => {
+  // Helper para manejar fechas locales y evitar desfases de zona horaria
+  const parseLocal = (isoString) => {
+    if (!isoString) return new Date();
+    try {
+      if (typeof isoString === 'string' && isoString.endsWith('Z')) {
+        return new Date(isoString.slice(0, -1));
+      }
+      return new Date(isoString);
+    } catch (e) {
+      return new Date(isoString);
+    }
+  };
+
+  // Función para limpiar el formato de la fecha de nacimiento
+  const formatDisplayDate = (dateString) => {
+    if (!dateString) return 'No disponible';
+    const datePart = dateString.split('T')[0]; // Quitamos el tiempo (T00:00...)
+    const [year, month, day] = datePart.split('-');
+    return `${day}/${month}/${year}`;
+  };
+
+  const fetchPatientProfile = useCallback(async () => {
+    if (user?.id) {
       try {
         setLoading(true);
-        const profileData = await getProfile();
-        setProfile(profileData);
+        const responseData = await findByPatient(user.id);
+        const appointments = Array.isArray(responseData) ? responseData : [];
+        
+        const now = new Date();
+        // Calculamos estadísticas reales
+        const uniqueDoctors = new Set(appointments.map(a => a.doctor?.id || a.doctorId));
+        const pastAppointments = appointments.filter(a => parseLocal(a.startTime) < now);
+
+        setStats({
+          appointments: appointments.length,
+          doctors: uniqueDoctors.size,
+          history: pastAppointments.length
+        });
+
         setError(null);
       } catch (e) {
-        setError('No se pudieron cargar los datos del perfil.');
-        console.error('Error fetching profile:', e);
+        setError('No se pudo cargar el perfil del paciente.');
+        console.error('Error fetching patient profile:', e);
       } finally {
         setLoading(false);
       }
-    };
+    }
+  }, [user]);
 
-    fetchProfile();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      fetchPatientProfile();
+    }, [fetchPatientProfile])
+  );
 
-  const formattedBirthDate = profile?.birthDate
-    ? new Date(profile.birthDate).toLocaleDateString('es-ES', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      })
-    : 'No disponible';
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors?.background || '#F5F8FF' }}>
+        <ActivityIndicator size="large" color={colors?.primary || "#3F51B5"} />
+      </View>
+    );
+  }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <Stack.Screen options={{ headerShown: false }} />
-      <Text style={styles.title}>Datos del Usuario</Text>
 
-      {loading ? (
-        <ActivityIndicator size="large" color="#0B4EF2" style={{ marginTop: 20 }} />
-      ) : error ? (
-        <Text style={styles.errorText}>{error}</Text>
-      ) : (
-        <View style={styles.infoCard}>
-          <InfoRow icon="user" label="Nombre" value={profile?.name} />
-          <InfoRow icon="envelope" label="Email" value={profile?.email} />
-          <InfoRow icon="phone" label="Teléfono" value={profile?.phoneNumber} />
-          <InfoRow icon="calendar" label="Fecha de nacimiento" value={formattedBirthDate} />
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Cabecera con Avatar */}
+        <View style={[styles.headerGradient, { backgroundColor: colors.primary }]}>
+          <View style={styles.topActions}>
+            <TouchableOpacity onPress={fetchPatientProfile} style={styles.iconButton}>
+              <FontAwesome name="refresh" size={20} color={colors.white} />
+            </TouchableOpacity>
+          </View>
+          
+          <View style={styles.profileInfoContainer}>
+            <View style={[styles.avatarBorder, { borderColor: colors.background }]}>
+              <FontAwesome name="user" size={60} color={colors.white} />
+            </View>
+            <Text style={[styles.patientName, { color: colors.white }]}>{user?.name || 'Paciente'}</Text>
+            <Text style={[styles.patientSubtitle, { color: 'rgba(255,255,255,0.8)' }]}>
+              Miembro desde {new Date().getFullYear()}
+            </Text>
+          </View>
         </View>
-      )}
 
-      <TouchableOpacity style={styles.logoutButton} onPress={signOut}>
-        <Text style={styles.logoutButtonText}>Cerrar sesión</Text>
-      </TouchableOpacity>
+        <View style={styles.body}>
+          {/* Barra de Estadísticas Reales */}
+          <View style={[styles.statsBar, { backgroundColor: colors.card, shadowColor: isDarkMode ? '#000' : '#072B66' }]}>
+            <StatItem label="Citas" value={stats.appointments.toString()} icon="calendar" colors={colors} />
+            <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
+            <StatItem label="Doctores" value={stats.doctors.toString()} icon="user-md" colors={colors} />
+            <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
+            <StatItem label="Historial" value={stats.history.toString()} icon="history" colors={colors} />
+          </View>
+
+          {error && <Text style={styles.errorText}>{error}</Text>}
+
+          {/* Información Personal */}
+          <Text style={[styles.sectionTitle, { color: colors.subtitle }]}>INFORMACIÓN PERSONAL</Text>
+          <View style={[styles.infoCard, { backgroundColor: colors.card, shadowColor: isDarkMode ? '#000' : '#072B66' }]}>
+            <InfoRow icon="envelope" label="Correo Electrónico" value={user?.email} colors={colors} />
+            <InfoRow icon="phone" label="Teléfono" value={user?.phoneNumber || 'No disponible'} colors={colors} />
+            <InfoRow icon="birthday-cake" label="Fecha de Nacimiento" value={formatDisplayDate(user?.birthDate)} colors={colors} />
+          </View>
+
+          {/* Ajustes */}
+          <Text style={[styles.sectionTitle, { color: colors.subtitle }]}>PREFERENCIAS</Text>
+          <View style={[styles.infoCard, { backgroundColor: colors.card, shadowColor: isDarkMode ? '#000' : '#072B66' }]}>
+            <View style={styles.settingsRow}>
+              <View style={styles.settingsLabelGroup}>
+                <View style={[styles.iconCircle, { backgroundColor: colors.background }]}>
+                  <FontAwesome name={isDarkMode ? "moon-o" : "sun-o"} size={16} color={colors.primary} />
+                </View>
+                <View>
+                  <Text style={[styles.settingsLabel, { color: colors.text }]}>Modo de Apariencia</Text>
+                  <Text style={[styles.settingsSubLabel, { color: colors.subtitle }]}>
+                    {isDarkMode ? 'Oscuro' : 'Claro'}
+                  </Text>
+                </View>
+              </View>
+              <Switch 
+                value={isDarkMode} 
+                onValueChange={toggleTheme}
+                trackColor={{ false: '#CBD5E1', true: colors.primary }}
+                thumbColor={colors.white}
+              />
+            </View>
+          </View>
+        </View>
+      </ScrollView>
+
+      <View style={styles.footer}>
+        <TouchableOpacity 
+          style={[styles.logoutButton, { backgroundColor: isDarkMode ? 'transparent' : '#D9534F', borderWidth: isDarkMode ? 1 : 0, borderColor: colors.error }]} 
+          onPress={signOut}
+        >
+          <FontAwesome name="sign-out" size={20} color="#FFFFFF" />
+          <Text style={styles.logoutButtonText}>Cerrar Sesión</Text>
+        </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
 }
 
-const InfoRow = ({ icon, label, value }) => (
+const InfoRow = ({ icon, label, value, colors }) => (
   <View style={styles.infoRow}>
-    <FontAwesome name={icon} size={18} color="#4B6AA3" style={styles.infoIcon} />
-    <View>
-      <Text style={styles.infoLabel}>{label}</Text>
-      <Text style={styles.infoValue}>{value || 'No disponible'}</Text>
+    <View style={[styles.iconCircle, { backgroundColor: colors.background }]}>
+      <FontAwesome name={icon} size={14} color={colors.primary} />
+    </View>
+    <View style={styles.infoContent}>
+      <Text style={[styles.infoLabel, { color: colors.subtitle }]}>{label}</Text>
+      <Text style={[styles.infoValue, { color: colors.text }]}>{value || 'No disponible'}</Text>
     </View>
   </View>
 );
 
+const StatItem = ({ label, value, icon, colors }) => (
+  <View style={styles.statItem}>
+    <FontAwesome name={icon} size={16} color={colors.primary} />
+    <Text style={[styles.statValue, { color: colors.text }]}>{value}</Text>
+    <Text style={[styles.statLabel, { color: colors.subtitle }]}>{label}</Text>
+  </View>
+);
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 24,
-    backgroundColor: '#F5F8FF',
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#072B66',
-    marginBottom: 20,
-  },
-  infoCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 20,
-    shadowColor: '#072B66',
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 5,
-  },
-  infoRow: {
-    flexDirection: 'row',
+  container: { flex: 1 },
+  headerGradient: {
+    paddingTop: 20,
+    paddingBottom: 40,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
     alignItems: 'center',
-    marginBottom: 18,
   },
-  infoIcon: {
-    width: 25,
-    marginRight: 15,
-  },
-  infoLabel: {
-    fontSize: 13,
-    color: '#6B82B1',
-  },
-  infoValue: { fontSize: 16, color: '#072B66', fontWeight: '600', marginTop: 2 },
-  menuContainer: {
-    marginTop: 30,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    paddingVertical: 10,
-    shadowColor: '#072B66',
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 5,
-  },
-  menuButton: {
+  topActions: {
+    width: '100%',
     flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingHorizontal: 24,
+    marginBottom: 10,
+  },
+  iconButton: {
+    padding: 8,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 10,
+  },
+  profileInfoContainer: {
     alignItems: 'center',
+  },
+  avatarBorder: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    borderWidth: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+  },
+  patientName: { fontSize: 22, fontWeight: '800' },
+  patientSubtitle: { fontSize: 14, fontWeight: '500', marginBottom: 12 },
+  body: { paddingHorizontal: 24, marginTop: -30 },
+  statsBar: {
+    flexDirection: 'row',
+    borderRadius: 20,
     paddingVertical: 15,
-    paddingHorizontal: 20,
+    marginBottom: 25,
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 5,
   },
-  menuButtonText: {
-    flex: 1,
-    marginLeft: 15,
+  statItem: { flex: 1, alignItems: 'center' },
+  statValue: { fontSize: 18, fontWeight: '800', marginVertical: 2 },
+  statLabel: { fontSize: 11, fontWeight: '600', textTransform: 'uppercase' },
+  statDivider: { width: 1, height: '70%', alignSelf: 'center' },
+  sectionTitle: { fontSize: 12, fontWeight: '700', letterSpacing: 1, marginBottom: 12, marginTop: 5 },
+  infoCard: {
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 25,
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  infoRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 15 },
+  iconCircle: { width: 32, height: 32, borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+  infoContent: { flex: 1 },
+  infoLabel: { fontSize: 11, fontWeight: '600' },
+  infoValue: { fontSize: 15, fontWeight: '600', marginTop: 1 },
+  divider: { height: 1, marginVertical: 15 },
+  settingsRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  settingsLabelGroup: { flexDirection: 'row', alignItems: 'center' },
+  settingsLabel: { fontSize: 15, fontWeight: '600' },
+  settingsSubLabel: { fontSize: 12, fontWeight: '500' },
+  footer: {
+    paddingHorizontal: 24,
+    paddingBottom: 24,
+  },
+  logoutButton: {
+    padding: 15,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+  },
+  logoutButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
     fontSize: 16,
-    color: '#072B66',
-    fontWeight: '600',
+    marginLeft: 10,
   },
-  separator: { height: 1, backgroundColor: '#F0F4F8', marginHorizontal: 20 },
-  logoutButton: { backgroundColor: '#FF6347', padding: 15, borderRadius: 12, alignItems: 'center', marginTop: 40 },
-  logoutButtonText: { color: '#FFFFFF', fontWeight: '700', fontSize: 16 },
   errorText: {
-    textAlign: 'center',
     color: '#D9534F',
-    marginTop: 20,
-    fontSize: 16,
+    marginTop: 5,
+    fontSize: 14,
+    fontStyle: 'italic',
   },
 });

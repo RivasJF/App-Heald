@@ -1,130 +1,111 @@
-import { Stack, useRouter } from 'expo-router';
-// Usamos Leaflet dentro de WebView en lugar de react-native-maps
 import * as Location from "expo-location";
-import { useEffect, useState, useContext, useRef } from "react";
-import { View, StyleSheet, Text, ActivityIndicator, TouchableOpacity, Alert, Pressable, Platform, Linking, Dimensions } from "react-native";
+import { Stack, useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { ActivityIndicator, Alert, Linking, Platform, Pressable, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTheme } from '../../../../../src/context/ThemeContext';
 import { CitaContext } from './+context/CitaContext';
-import Constants from 'expo-constants';
 
-// Constante para las deltas iniciales (nivel de zoom)
-const INITIAL_DELTA = 0.005;
+const DEFAULT_LOCATION = {
+  latitude: 40.7128,
+  longitude: -74.0060,
+};
 
-const { height: SCREEN_HEIGHT } = Dimensions.get('window');
-const MAP_HEIGHT = SCREEN_HEIGHT * 0.65; // 65% de la pantalla
+const LOCATION_TIMEOUT_MS = 15000; // Aumentamos a 15 segundos para mayor estabilidad
+
+const withTimeout = (promise, timeoutMs) => {
+  const timeoutPromise = new Promise((_, reject) => {
+    setTimeout(() => reject(new Error('Timeout')), timeoutMs);
+  });
+  return Promise.race([promise, timeoutPromise]);
+};
+
+const formatAddress = (addressData) => {
+  if (!addressData) return 'Dirección no encontrada.';
+  const street = addressData.street || '';
+  const streetNumber = addressData.streetNumber || '';
+  const city = addressData.city || '';
+  const region = addressData.region || '';
+  return `${street} ${streetNumber}, ${city}, ${region}`.replace(/\s+,/g, ',').trim();
+};
+
+const buildMapHtml = (latitude, longitude) => `<!doctype html><html><head><meta name="viewport" content="initial-scale=1.0, maximum-scale=1.0"/><link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/><style>html,body,#map{height:100%;margin:0;padding:0} .leaflet-container{background:#fff}</style></head><body><div id="map"></div><script src="https://unpkg.com/leaflet/dist/leaflet.js"></script><script> (function(){try{var lat=${latitude}, lng=${longitude}; var map=L.map('map').setView([lat,lng],15); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19, attribution:'© OpenStreetMap contributors'}).addTo(map); var marker=L.marker([lat,lng],{draggable:true}).addTo(map); marker.on('dragend', function(e){ var p=e.target.getLatLng(); try{ window.ReactNativeWebView.postMessage(JSON.stringify({lat:p.lat,lng:p.lng})); }catch(err){} }); map.on('click', function(e){ try{ marker.setLatLng(e.latlng); window.ReactNativeWebView.postMessage(JSON.stringify({lat:e.latlng.lat,lng:e.latlng.lng})); }catch(err){} }); window.centerOn = function(lat,lng){ try{ map.setView([lat,lng],15); marker.setLatLng([lat,lng]); }catch(err){} }; }catch(err){ console.error(err);} })();</script></body></html>`;
 
 export default function SelectLocationScreen() {
   const router = useRouter();
   const { setSelectedLocation } = useContext(CitaContext);
+  const { colors, isDarkMode, statusBarStyle } = useTheme();
 
-  const [location, setLocation] = useState(null); // { latitude: number, longitude: number }
+  const [location, setLocation] = useState(null);
   const [address, setAddress] = useState("Cargando dirección...");
   const [isLoading, setIsLoading] = useState(true);
+  const [webviewError, setWebviewError] = useState(false);
+  const webviewRef = useRef(null);
 
-  // Detectar si estamos en una build standalone Android y si falta API key de Google Maps
-  const isStandalone = Constants.appOwnership === 'standalone';
-  const expoApiKey = (Constants.manifest && Constants.manifest.android && Constants.manifest.android.config && Constants.manifest.android.config.googleMaps && Constants.manifest.android.config.googleMaps.apiKey) ||
-    (Constants.expoConfig && Constants.expoConfig.android && Constants.expoConfig.android.config && Constants.expoConfig.android.config.googleMaps && Constants.expoConfig.android.config.googleMaps.apiKey) || null;
+  const WebView = useMemo(() => {
+    try {
+      return require('react-native-webview').WebView;
+    } catch (error) {
+      return null;
+    }
+  }, []);
 
-  // Considerar cadenas placeholder como "sin clave real" para evitar intentar renderizar MapView
-  const hasRealApiKey = typeof expoApiKey === 'string' && expoApiKey.trim().length > 0 && !/put_your|replace|your_google_maps|put_your_google/i.test(expoApiKey.toLowerCase());
-  const canRenderMap = !(Platform.OS === 'android' && isStandalone && !hasRealApiKey);
-
-  // 1. Función para obtener la dirección (Geocodificación Inversa)
-  const fetchAddress = async (coords) => {
+  const fetchAddress = useCallback(async (coords) => {
     try {
       setAddress("Buscando dirección...");
       const reverseGeocode = await Location.reverseGeocodeAsync(coords);
-      if (reverseGeocode.length > 0) {
-        const addr = reverseGeocode[0];
-        const formattedAddress = `${addr.street} ${addr.streetNumber || ''}, ${addr.city}, ${addr.region}`;
-        setAddress(formattedAddress);
-      } else {
-        setAddress("Dirección no encontrada.");
-      }
+      const formattedAddress = formatAddress(reverseGeocode[0]);
+      setAddress(formattedAddress);
     } catch (error) {
       console.error("Error al obtener la dirección:", error);
       setAddress("Error al cargar la dirección.");
     }
-  };
+  }, []);
 
-  // 2. Efecto para obtener la ubicación actual al inicio
+  const getCurrentCoords = useCallback(async () => {
+    const currentLocation = await withTimeout(
+      Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),
+      LOCATION_TIMEOUT_MS,
+    );
+    return currentLocation.coords;
+  }, []);
+
   useEffect(() => {
     (async () => {
       setIsLoading(true);
       try {
-        // Primero solicitar permiso
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') {
           setAddress("Permiso de ubicación denegado");
-          // Usar una ubicación por defecto (ej: centro de una ciudad)
-          const defaultLocation = {
-            latitude: 40.7128,
-            longitude: -74.0060,
-          };
-          setLocation(defaultLocation);
-          setIsLoading(false);
+          setLocation(DEFAULT_LOCATION);
           return;
         }
 
-        // Intentar obtener la ubicación con timeout
-        const locationPromise = Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.Balanced,
-        });
-
-        const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Timeout')), 10000)
-        );
-
         try {
-          const loc = await Promise.race([locationPromise, timeoutPromise]);
-          const initialCoords = loc.coords;
+          const initialCoords = await getCurrentCoords();
           setLocation(initialCoords);
           await fetchAddress(initialCoords);
         } catch (timeoutError) {
           console.warn("Timeout obteniendo ubicación, usando ubicación por defecto");
-          const defaultLocation = {
-            latitude: 40.7128,
-            longitude: -74.0060,
-          };
-          setLocation(defaultLocation);
+          setLocation(DEFAULT_LOCATION);
           setAddress("Ubicación por defecto");
         }
       } catch (error) {
         console.error("Error al obtener permisos:", error);
-        const defaultLocation = {
-          latitude: 40.7128,
-          longitude: -74.0060,
-        };
-        setLocation(defaultLocation);
+        setLocation(DEFAULT_LOCATION);
         setAddress("Ubicación por defecto");
       } finally {
         setIsLoading(false);
       }
     })();
-  }, []);
+  }, [fetchAddress, getCurrentCoords]);
 
-  // 3. Manejador de toque en el mapa
-  const handleMapPress = (e) => {
-    const newCoords = e.nativeEvent.coordinate;
-    setLocation(newCoords);
-    fetchAddress(newCoords);
-  };
-
-  // 4. Manejador para actualizar ubicación actual
-  const handleRefreshLocation = async () => {
+  const handleRefreshLocation = useCallback(async () => {
     setIsLoading(true);
     try {
-      const locationPromise = Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
-      });
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Timeout')), 10000)
-      );
-      
       try {
-        const loc = await Promise.race([locationPromise, timeoutPromise]);
-        const coords = loc.coords;
+        const coords = await getCurrentCoords();
         setLocation(coords);
         await fetchAddress(coords);
       } catch (error) {
@@ -133,19 +114,16 @@ export default function SelectLocationScreen() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [fetchAddress, getCurrentCoords]);
 
-  // 5. Manejador para guardar y continuar
-  const handleConfirmLocation = () => {
+  const handleConfirmLocation = useCallback(() => {
     if (!location) return Alert.alert('Error', 'No hay ubicación seleccionada');
     try {
-      // Guardar en el contexto (si el contexto existe)
       if (typeof setSelectedLocation === 'function') {
         setSelectedLocation({ ...location, address });
       } else {
         console.warn('CitaContext no proporciona setSelectedLocation');
       }
-      // Navegar a la siguiente pantalla
       try {
         router.push('/(app)/(clientes)/(tabs)/crear-cita/doctor');
       } catch (navErr) {
@@ -156,9 +134,9 @@ export default function SelectLocationScreen() {
       console.error('Error en handleConfirmLocation:', err);
       Alert.alert('Error', 'No se pudo confirmar la ubicación.');
     }
-  };
+  }, [address, location, router, setSelectedLocation]);
 
-  const openExternalMap = async (coords) => {
+  const openExternalMap = useCallback(async (coords) => {
     try {
       const { latitude, longitude } = coords || location || {};
       if (typeof latitude !== 'number' || typeof longitude !== 'number') {
@@ -173,118 +151,128 @@ export default function SelectLocationScreen() {
       console.error('openExternalMap error:', e);
       Alert.alert('Error', 'No se pudo abrir la aplicación de mapas.');
     }
-  };
+  }, [location]);
 
-  const [webviewLoading, setWebviewLoading] = useState(false);
-  const [webviewError, setWebviewError] = useState(false);
-  const webviewRef = useRef(null);
+  const handleWebViewMessage = useCallback((event) => {
+    try {
+      const payload = JSON.parse(event.nativeEvent.data);
+      const hasValidLat = payload?.lat === 0 || !!payload?.lat;
+      const hasValidLng = payload?.lng === 0 || !!payload?.lng;
+
+      if (!hasValidLat || !hasValidLng) return;
+
+      const newCoords = {
+        latitude: Number(payload.lat),
+        longitude: Number(payload.lng),
+      };
+      setLocation(newCoords);
+      fetchAddress(newCoords);
+    } catch (error) {
+      console.warn('Payload inválido desde WebView', error);
+    }
+  }, [fetchAddress]);
+
+  const handleCenterMap = useCallback(() => {
+    if (!webviewRef.current || !location) return;
+    const js = `window.centerOn(${location.latitude}, ${location.longitude});true;`;
+    webviewRef.current.injectJavaScript(js);
+  }, [location]);
+
+  const renderMapContent = () => {
+    if (!WebView || webviewError) {
+      return (
+        <View style={[styles.mapPlaceholder, { backgroundColor: colors.background }]}>
+          <Text style={[styles.mapPlaceholderText, { color: colors.text }]}>Mapa no disponible: falta WebView o falla al cargar.</Text>
+          <TouchableOpacity style={[styles.openMapsButton, { backgroundColor: colors.primary }]} onPress={() => openExternalMap(location)}>
+            <Text style={[styles.openMapsButtonText, { color: colors.white }]}>🗺️ Abrir en Maps</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
+    const htmlContent = buildMapHtml(location.latitude, location.longitude);
+
+    return (
+      <>
+        <WebView
+          ref={webviewRef}
+          originWhitelist={["*"]}
+          source={{ html: htmlContent, baseUrl: 'https://localhost/' }}
+          style={styles.webview}
+          javaScriptEnabled={true}
+          domStorageEnabled={true}
+          mixedContentMode={'always'}
+          allowUniversalAccessFromFileURLs={true}
+          allowFileAccess={true}
+          scalesPageToFit={true}
+          onMessage={handleWebViewMessage}
+          onError={(event) => {
+            console.warn('WebView error', event);
+            Alert.alert('Error', 'No se pudo cargar el mapa embebido.');
+            setWebviewError(true);
+          }}
+        />
+
+        <TouchableOpacity style={[styles.centerButton, { backgroundColor: colors.card }]} onPress={handleCenterMap}>
+          <Text style={[styles.centerButtonText, { color: colors.text }]}>Centrar</Text>
+        </TouchableOpacity>
+      </>
+    );
+  };
 
   if (isLoading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#0B4EF2" />
-        <Text style={{ marginTop: 10, color: '#072B66' }}>Cargando mapa y ubicación...</Text>
+      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={[styles.loadingText, { color: colors.text }]}>Cargando mapa y ubicación...</Text>
       </View>
     );
   }
 
   if (!location) {
     return (
-      <View style={styles.loadingContainer}>
-        <Text style={{ marginBottom: 20, color: '#072B66', fontSize: 16 }}>
+      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <Text style={{ marginBottom: 20, color: colors.text, fontSize: 16 }}>
           No se pudo obtener la ubicación
         </Text>
         <Pressable 
-          style={styles.continueButton}
+          style={[styles.continueButton, { backgroundColor: colors.primary }]}
           onPress={handleConfirmLocation}
         >
-          <Text style={styles.continueButtonText}>Continuar sin ubicación</Text>
+          <Text style={[styles.continueButtonText, { color: colors.white }]}>Continuar sin ubicación</Text>
         </Pressable>
       </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'left', 'right']}>
       <Stack.Screen options={{ title: 'Selecciona Ubicación', headerShown: false }} />
+      <StatusBar style={statusBarStyle} />
       <View style={styles.mapContainer}>
-        {(() => {
-          let WebView = null;
-          try {
-            WebView = require('react-native-webview').WebView;
-          } catch (e) {
-            WebView = null;
-          }
-
-          if (WebView) {
-            const osmHtml = `<!doctype html><html><head><meta name="viewport" content="initial-scale=1.0, maximum-scale=1.0"/><link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/><style>html,body,#map{height:100%;margin:0;padding:0} .leaflet-container{background:#fff}</style></head><body><div id="map"></div><script src="https://unpkg.com/leaflet/dist/leaflet.js"></script><script> (function(){try{var lat=${location.latitude}, lng=${location.longitude}; var map=L.map('map').setView([lat,lng],15); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19, attribution:'© OpenStreetMap contributors'}).addTo(map); var marker=L.marker([lat,lng],{draggable:true}).addTo(map); marker.on('dragend', function(e){ var p=e.target.getLatLng(); try{ window.ReactNativeWebView.postMessage(JSON.stringify({lat:p.lat,lng:p.lng})); }catch(err){} }); map.on('click', function(e){ try{ marker.setLatLng(e.latlng); window.ReactNativeWebView.postMessage(JSON.stringify({lat:e.latlng.lat,lng:e.latlng.lng})); }catch(err){} }); window.centerOn = function(lat,lng){ try{ map.setView([lat,lng],15); marker.setLatLng([lat,lng]); }catch(err){} }; }catch(err){ console.error(err);} })();</script></body></html>`;
-
-            return (
-              <>
-                <WebView
-                  ref={webviewRef}
-                  originWhitelist={["*"]}
-                  source={{ html: osmHtml , baseUrl: 'https://localhost/'}}
-                  style={styles.webview}
-                  javaScriptEnabled={true}
-                  domStorageEnabled={true}
-                  mixedContentMode={'always'}
-                  allowUniversalAccessFromFileURLs={true}
-                  allowFileAccess={true}
-                  scalesPageToFit={true}
-                  onMessage={(event) => {
-                    try {
-                      const payload = JSON.parse(event.nativeEvent.data);
-                      if (payload && (payload.lat === 0 || payload.lat) && (payload.lng === 0 || payload.lng)) {
-                        const newCoords = { latitude: Number(payload.lat), longitude: Number(payload.lng) };
-                        setLocation(newCoords);
-                        fetchAddress(newCoords);
-                      }
-                    } catch (err) {}
-                  }}
-                  onError={(e) => { console.warn('WebView error', e); Alert.alert('Error', 'No se pudo cargar el mapa embebido.'); setWebviewError(true); }}
-                />
-
-                <TouchableOpacity
-                  style={styles.centerButton}
-                  onPress={() => {
-                    if (webviewRef.current && location) {
-                      const js = `window.centerOn(${location.latitude}, ${location.longitude});true;`;
-                      webviewRef.current.injectJavaScript(js);
-                    }
-                  }}
-                >
-                  <Text style={styles.centerButtonText}>Centrar</Text>
-                </TouchableOpacity>
-              </>
-            );
-          }
-
-          return (
-            <View style={styles.mapPlaceholder}>
-              <Text style={styles.mapPlaceholderText}>Mapa no disponible: falta WebView o falla al cargar.</Text>
-              <TouchableOpacity style={styles.openMapsButton} onPress={() => openExternalMap(location)}>
-                <Text style={styles.openMapsButtonText}>🗺️ Abrir en Maps</Text>
-              </TouchableOpacity>
-            </View>
-          );
-        })()}
+        {renderMapContent()}
       </View>
 
-      <View style={styles.infoPanel}>
+      <View style={[
+        styles.infoPanel, 
+        { 
+          backgroundColor: colors.card,
+          borderWidth: isDarkMode ? 1 : 0,
+          borderColor: colors.border,
+          shadowColor: isDarkMode ? '#000' : '#000'
+        }]}>
         <View style={styles.infoPanelContent}>
           <View style={styles.addressContainer}>
-            <Text style={styles.addressLabel}>Ubicación seleccionada</Text>
-            <Text style={styles.addressText}>{address}</Text>
-            <Text style={styles.coordsText}>{location.latitude.toFixed(5)}, {location.longitude.toFixed(5)}</Text>
+            <Text style={[styles.addressLabel, { color: colors.subtitle }]}>Ubicación seleccionada</Text>
+            <Text style={[styles.addressText, { color: colors.text }]}>{address}</Text>
+            <Text style={[styles.coordsText, { color: colors.subtitle }]}>{location.latitude.toFixed(5)}, {location.longitude.toFixed(5)}</Text>
           </View>
-
           <View style={styles.buttonContainer}>
-            <TouchableOpacity style={styles.refreshButton} onPress={handleRefreshLocation} disabled={isLoading}>
-              <Text style={styles.refreshButtonText}>{isLoading ? '🔄 Actualizando...' : '🔄 Actualizar'}</Text>
+            <TouchableOpacity style={[styles.refreshButton, { backgroundColor: isDarkMode ? colors.border : '#E8EFF9' }]} onPress={handleRefreshLocation} disabled={isLoading}>
+              <Text style={[styles.refreshButtonText, { color: colors.primary }]}>{isLoading ? 'Actualizando...' : 'Actualizar'}</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.saveButton} onPress={handleConfirmLocation}>
-              <Text style={styles.saveButtonText}>Confirmar Ubicación</Text>
+            <TouchableOpacity style={[styles.saveButton, { backgroundColor: colors.primary }]} onPress={handleConfirmLocation}>
+              <Text style={[styles.saveButtonText, { color: colors.white }]}>Confirmar Ubicación</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -296,7 +284,6 @@ export default function SelectLocationScreen() {
 const styles = StyleSheet.create({
   container: { 
     flex: 1, 
-    backgroundColor: '#fff' 
   },
   loadingContainer: { 
     flex: 1, 
@@ -311,7 +298,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   mapContainer: {
-    height: MAP_HEIGHT,
+    flex: 0.64,
     width: '100%',
     position: 'relative',
   },
@@ -364,8 +351,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   infoPanel: {
-    flex: 1,
-    backgroundColor: '#fff',
+    flex: 0.36,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     shadowColor: '#000',
@@ -373,15 +359,15 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 6,
     elevation: 10,
-    marginTop: -20,
+    marginTop: 0,
   },
   infoPanelContent: {
     flex: 1,
     padding: 20,
-    justifyContent: 'space-between',
+    justifyContent: 'space-around',
   },
   addressContainer: {
-    marginBottom: 16,
+    marginBottom: 5,
   },
   addressLabel: {
     fontSize: 12,
@@ -389,7 +375,7 @@ const styles = StyleSheet.create({
     color: '#6B82B1',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    marginBottom: 8,
+    marginBottom: 0,
   },
   addressText: { 
     fontSize: 16, 

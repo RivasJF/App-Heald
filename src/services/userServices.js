@@ -8,6 +8,68 @@ const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));//delay pa
 
 
 // --- Peticiones Públicas ---
+/**
+ * Registra un nuevo usuario en el sistema. (POST /users/register)
+ * @param {object} requestCode - Los datos del usuario a registrar.
+ * @param {string} userData.email - Correo electrónico.
+ * @returns {Promise<object>} La respuesta del servidor.
+ */
+export const requestCode = async (requestEmail) => {
+  try {
+    // Se hace la petición al endpoint de registro de tu API
+    const response = await api.post(USER_BASE_PATH+"/send-code", requestEmail);
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+};
+
+/**
+ * Envía un código para restablecer la contraseña. (POST /user/send-code-reset-password)
+ * @param {object} payload - Datos para solicitar el código.
+ * @param {string} payload.email - Correo electrónico del usuario.
+ * @returns {Promise<object>} La respuesta del servidor.
+ */
+export const sendCodeResetPassword = async (payload) => {
+  try {
+    const response = await api.post(`${USER_BASE_PATH}/send-code-reset-password`, payload);
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+};
+
+/**
+ * Valida el código para restablecer la contraseña. (POST /user/validate-code-reset-password)
+ * @param {object} payload - Datos de validación.
+ * @param {string} payload.email - Correo electrónico del usuario.
+ * @param {string} payload.code - Código recibido por correo.
+ * @returns {Promise<object>} La respuesta del servidor.
+ */
+export const validateCodeResetPassword = async (payload) => {
+  try {
+    const response = await api.post(`${USER_BASE_PATH}/validate-code-reset-password`, payload);
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+};
+
+/**
+ * Restablece la contraseña del usuario. (PATCH /user/reset-password)
+ * @param {object} payload - Datos para actualizar la contraseña.
+ * @param {string} payload.email - Correo electrónico del usuario.
+ * @param {string} payload.newPassword - Nueva contraseña.
+ * @returns {Promise<object>} La respuesta del servidor.
+ */
+export const resetPassword = async (payload) => {
+  try {
+    const response = await api.patch(`${USER_BASE_PATH}/reset-password`, payload);
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+};
 
 /**
  * Registra un nuevo usuario en el sistema. (POST /users/register)
@@ -18,6 +80,7 @@ const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));//delay pa
  * @param {string} userData.phoneNumber - Número de teléfono.
  * @param {string} userData.birthDate - Fecha de nacimiento en formato ISO (YYYY-MM-DDTHH:mm:ss.sssZ).
  * @param {string} userData.role - Rol del usuario ('CLIENT' o 'DOCTOR').
+ * @param {string} userData.code .
  * @returns {Promise<object>} La respuesta del servidor.
  */
 export const registerUser = async (userData) => {
@@ -107,3 +170,5 @@ export const deleteUser = async (id) => {
     throw error.response ? error.response.data : error;
   }
 };
+
+

@@ -1,10 +1,11 @@
-import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
-import * as Location from "expo-location";
-import { useEffect, useState, useRef } from "react";
-import { View, StyleSheet, Text, ActivityIndicator, TouchableOpacity, Alert, Platform, Linking, Dimensions } from "react-native";
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { createClinic, updateClinic } from '../../../src/services/clinicService';
 import Constants from 'expo-constants';
+import * as Location from "expo-location";
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { useEffect, useRef, useState } from "react";
+import { ActivityIndicator, Alert, Dimensions, Linking, Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTheme } from '../../../src/context/ThemeContext';
+import { createClinic, updateClinic } from '../../../src/services/clinicService';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const MAP_HEIGHT = SCREEN_HEIGHT * 0.75; // 3/4 de la pantalla
@@ -12,6 +13,7 @@ const MAP_HEIGHT = SCREEN_HEIGHT * 0.75; // 3/4 de la pantalla
 export default function CreateClinicScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
+  const { colors, isDarkMode } = useTheme();
   // Si viene 'clinic' estamos en modo edición. Si no, es creación.
   const clinicToEdit = params.clinic ? JSON.parse(params.clinic) : null;
   const doctorId = clinicToEdit ? clinicToEdit.doctorId : params.doctorId;
@@ -167,15 +169,15 @@ export default function CreateClinicScreen() {
 
   if (isLoading || !location) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#0B4EF2" />
-        <Text style={styles.loadingText}>Cargando mapa...</Text>
+      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={[styles.loadingText, { color: colors.text }]}>Cargando mapa...</Text>
       </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <Stack.Screen options={{ title: 'Registrar Consultorio', headerShown: false }} />
       
       {/* Mapa que ocupa 3/4 de la pantalla */}
@@ -189,7 +191,7 @@ export default function CreateClinicScreen() {
           }
 
           if (WebView) {
-            const osmHtml = `<!doctype html><html><head><meta name="viewport" content="initial-scale=1.0, maximum-scale=1.0"/><link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/><style>html,body,#map{height:100%;margin:0;padding:0} .leaflet-container{background:#fff}</style></head><body><div id="map"></div><script src="https://unpkg.com/leaflet/dist/leaflet.js"></script><script> (function(){try{var lat=${location.latitude}, lng=${location.longitude}; var map=L.map('map').setView([lat,lng],15); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19, attribution:'© OpenStreetMap contributors'}).addTo(map); var marker=L.marker([lat,lng],{draggable:true}).addTo(map); marker.on('dragend', function(e){ var p=e.target.getLatLng(); try{ window.ReactNativeWebView.postMessage(JSON.stringify({lat:p.lat,lng:p.lng})); }catch(err){} }); map.on('click', function(e){ try{ marker.setLatLng(e.latlng); window.ReactNativeWebView.postMessage(JSON.stringify({lat:e.latlng.lat,lng:e.latlng.lng})); }catch(err){} }); window.centerOn = function(lat,lng){ try{ map.setView([lat,lng],15); marker.setLatLng([lat,lng]); }catch(err){} }; }catch(err){ console.error(err);} })();</script></body></html>`;
+            const osmHtml = `<!doctype html><html><head><meta name="viewport" content="initial-scale=1.0, maximum-scale=1.0"/><link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/><style>html,body,#map{height:100%;margin:0;padding:0} .leaflet-container{background:${colors.background}}</style></head><body><div id="map"></div><script src="https://unpkg.com/leaflet/dist/leaflet.js"></script><script> (function(){try{var lat=${location.latitude}, lng=${location.longitude}; var map=L.map('map').setView([lat,lng],15); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19, attribution:'© OpenStreetMap contributors'}).addTo(map); var marker=L.marker([lat,lng],{draggable:true}).addTo(map); marker.on('dragend', function(e){ var p=e.target.getLatLng(); try{ window.ReactNativeWebView.postMessage(JSON.stringify({lat:p.lat,lng:p.lng})); }catch(err){} }); map.on('click', function(e){ try{ marker.setLatLng(e.latlng); window.ReactNativeWebView.postMessage(JSON.stringify({lat:e.latlng.lat,lng:e.latlng.lng})); }catch(err){} }); window.centerOn = function(lat,lng){ try{ map.setView([lat,lng],15); marker.setLatLng([lat,lng]); }catch(err){} }; }catch(err){ console.error(err);} })();</script></body></html>`;
 
             return (
               <>
@@ -224,8 +226,8 @@ export default function CreateClinicScreen() {
           }
 
           return (
-            <View style={styles.mapPlaceholder}>
-              <Text style={styles.mapPlaceholderText}>
+            <View style={[styles.mapPlaceholder, { backgroundColor: colors.background }]}>
+              <Text style={[styles.mapPlaceholderText, { color: colors.text }]}>
                 Mapa no disponible: falta WebView o falla al cargar.
               </Text>
               <TouchableOpacity 
@@ -245,29 +247,29 @@ export default function CreateClinicScreen() {
       </View>
 
       {/* Panel de información que ocupa 1/4 de la pantalla */}
-      <View style={styles.infoPanel}>
+      <View style={[styles.infoPanel, { backgroundColor: colors.card }]}>
         <View style={styles.infoPanelContent}>
           <View style={styles.addressContainer}>
-            <Text style={styles.addressLabel}>Ubicación seleccionada</Text>
-            <Text style={styles.addressText}>{address}</Text>
-            <Text style={styles.coordsText}>
+            <Text style={[styles.addressLabel, { color: colors.subtitle }]}>Ubicación seleccionada</Text>
+            <Text style={[styles.addressText, { color: colors.text }]}>{address}</Text>
+            <Text style={[styles.coordsText, { color: colors.subtitle }]}>
               {location.latitude.toFixed(5)}, {location.longitude.toFixed(5)}
             </Text>
           </View>
           
           <View style={styles.buttonContainer}>
             <TouchableOpacity 
-              style={styles.refreshButton} 
+              style={[styles.refreshButton, { backgroundColor: isDarkMode ? colors.border : '#E8EFF9' }]} 
               onPress={handleRefreshLocation} 
               disabled={isLoading}
             >
-              <Text style={styles.refreshButtonText}>
+              <Text style={[styles.refreshButtonText, { color: colors.primary }]}>
                 {isLoading ? '🔄 Actualizando...' : '🔄 Actualizar'}
               </Text>
             </TouchableOpacity>
             
             <TouchableOpacity
-              style={[styles.saveButton, isSaving && styles.disabledButton]}
+              style={[styles.saveButton, { backgroundColor: colors.primary }, isSaving && styles.disabledButton]}
               onPress={handleSaveLocation}
               disabled={isSaving}
             >
@@ -285,9 +287,8 @@ export default function CreateClinicScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    backgroundColor: '#fff' 
+  container: {
+    flex: 1,
   },
   loadingContainer: { 
     flex: 1, 
@@ -356,7 +357,6 @@ const styles = StyleSheet.create({
   },
   infoPanel: {
     flex: 1,
-    backgroundColor: '#fff',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     shadowColor: '#000',

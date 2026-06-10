@@ -1,8 +1,17 @@
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
-import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { ActivityIndicator, Alert } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  ImageBackground,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
+} from 'react-native';
 import { useAuth } from '../../src/context/AuthContext';
 
 
@@ -31,9 +40,22 @@ export default function App() {
   };
 
   return (
-    <View style={styles.container}>
+    <ImageBackground
+      source={require('../../assets/fondo.jpg')}
+      style={styles.backgroundImage}
+      resizeMode="cover"
+    >
+      <View style={styles.container}>
 
-      <Text style={styles.title}>Bienvenido a Health Medic!</Text>
+      <Image
+        source={require('../../assets/adaptive-icon.png')}
+        style={styles.logo}
+      />
+
+      <Text style={styles.title}>
+        <Text style={styles.welcomeText}>Bienvenido a</Text>{"\n"}
+        <Text style={styles.brandText}>Health Medic!</Text>
+      </Text>
 
       <TextInput
         style={styles.input}
@@ -52,57 +74,88 @@ export default function App() {
         onChangeText={setPassword}
       />
 
+      <TouchableOpacity onPress={() => router.push('/recuperar-contrasena')}>
+        <Text style={styles.forgotPasswordText}>¿Olvidaste tu contraseña?</Text>
+      </TouchableOpacity>
+
       <TouchableOpacity style={styles.buttonPrimary} onPress={handleLogin} disabled={loading || authLoading}>
         <Text style={styles.buttonPrimaryText}>{(loading || authLoading) ? "Conectando..." : "Continuar"}</Text>
       </TouchableOpacity>
 
       {(loading || authLoading) && <ActivityIndicator style={{marginTop: 15}} size="large" color="#4CAFED" />}
 
-      <TouchableOpacity onPress={() => router.push('/Register')}>
+      <TouchableOpacity onPress={() => router.push('/user')}>
         <Text style={styles.registerText}>Registrarte</Text>
       </TouchableOpacity>
 
       <Text style={styles.privacyText}>
-        Al continuar ceptas los terminos y condiciones y la{' '}
-        <Text style={styles.link}>Política de privacidad</Text>
+        Al continuar aceptas los términos y condiciones y la{' '}
+        <Text style={styles.link} onPress={() => router.push('/politicasprivaci')}>
+          Política de privacidad
+        </Text>
       </Text>
 
       <StatusBar style="auto" />
-    </View>
+      </View>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
+  backgroundImage: {
+    flex: 1,
+  },
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255, 255, 255, 0.7)', // Capa blanca semi-transparente para resaltar el marmolado con elegancia
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 20,
   },
 
+  logo: {
+    width: 150,
+    height: 150,
+    borderRadius: 75, // Esto lo hace circular
+    marginBottom: 20,
+  },
+
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
+    textAlign: 'center',
     marginBottom: 30,
   },
 
+  welcomeText: {
+    fontSize: 22, // Reducido de 28 para un mejor balance
+    fontWeight: '400', // Peso normal (sin negritas)
+    color: '#666666', // Tono grisáceo para resaltar más la marca
+    lineHeight: 28,
+  },
+
+  brandText: {
+    fontSize: 36, // Reducido de 42 para evitar desbordamientos en pantallas pequeñas
+    fontWeight: '900', // El peso más fuerte disponible
+    color: '#072B66', // Azul de la marca
+    lineHeight: 42,
+    letterSpacing: -1, // Un toque moderno para que resalte más
+  },
+
   input: {
-    width: '100%',
+    width: '95%',
     height: 50,
     borderWidth: 1,
     borderColor: '#CCC',
     borderRadius: 10,
     paddingHorizontal: 15,
+    backgroundColor: '#FFFFFF', // Ahora es blanco para integrarse totalmente
     marginBottom: 15,
     fontSize: 16,
   },
 
   buttonPrimary: {
-    width: '100%',
+    width: '95%',
     height: 50,
-    backgroundColor: '#4CAFED',
+    backgroundColor: '#4CAFED', // Azul claro consistente con el resto de la app
     borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
@@ -116,9 +169,18 @@ const styles = StyleSheet.create({
   },
 
   registerText: {
-    color: '#4CAFED',
+    color: '#0B4EF2',
     marginTop: 15,
     fontSize: 16,
+  },
+
+  forgotPasswordText: {
+    color: '#0B4EF2',
+    textDecorationLine: 'underline',
+    marginTop: 10,
+    marginBottom: 20,
+    fontSize: 14,
+    fontWeight: '500',
   },
 
   privacyText: {

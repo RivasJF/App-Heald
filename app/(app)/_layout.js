@@ -2,7 +2,8 @@ import { Slot, Redirect } from "expo-router";
 import { useAuth } from "../../src/context/AuthContext";
 import { ActivityIndicator, View, Alert } from "react-native";
 import { useEffect } from "react";
-import * as Location from 'expo-location';
+import * as Location from 'expo-location'
+
 
 export default function RootLayout() {
   const { loading, isAuthenticated } = useAuth();

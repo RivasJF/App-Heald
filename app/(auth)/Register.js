@@ -1,22 +1,27 @@
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, ImageBackground, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useRequestCode } from '../../src/hooks/user/useRequestCode.hook';
+import { useRegisterStore } from '../../src/store/register.store';
 
 export default function Register() {
-
-  const [nombre, setNombre] = useState('');
-  const [telefono, setTelefono] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  // Zustand store
+  const { name, email, telefono, password, confirmPassword, birthDate, role, setName, setEmail, setTelefono, setPassword, setConfirmPassword, setBirthDate } = useRegisterStore();
+  const { mutateAsync: sendCode, isPending: loading } = useRequestCode();
 
   const [date, setDate] = useState(null); 
   const [showPicker, setShowPicker] = useState(false);
 
   const handleDateChange = (event, selectedDate) => {
     setShowPicker(false);
-    if (selectedDate) setDate(selectedDate);
+    if (selectedDate) {
+      setDate(selectedDate);
+      const day = selectedDate.getDate().toString().padStart(2, "0");
+      const month = (selectedDate.getMonth() + 1).toString().padStart(2, "0");
+      const year = selectedDate.getFullYear();
+      setBirthDate(`${year}-${month}-${day}`);
+    }
   };
 
   // Formato para mostrar en la UI: DD/MM/AAAA
@@ -28,17 +33,10 @@ export default function Register() {
     return `${day}/${month}/${year}`;
   };
 
-  // Formato para enviar a la API: YYYY-MM-DDTHH:mm:ss.sssZ
-  const formatApiDate = (d) => {
-    const day = d.getDate().toString().padStart(2, "0");
-    const month = (d.getMonth() + 1).toString().padStart(2, "0");
-    const year = d.getFullYear(); 
-    return `${year}-${month}-${day}`;
-  };
 
-  const handleRegister = () => {
+  const handleRegister = async () => {
     // 1. Validación de campos vacíos
-    if (!nombre || !telefono || !email || !password || !confirmPassword || !date) {
+    if (!name || !telefono || !email || !password || !confirmPassword || !date) {
       Alert.alert('Campos Incompletos', 'Por favor, rellena todos los campos.');
       return;
     }
@@ -53,7 +51,13 @@ export default function Register() {
       return;
     }
 
-    // 3. Formateo del número de teléfono
+    // 3. Validación de rol
+    if (!role) {
+      Alert.alert('Rol no seleccionado', 'Por favor, vuelve atrás y selecciona tu tipo de usuario.');
+      return;
+    }
+
+    // 4. Formateo del número de teléfono
     const cleanedPhone = telefono.replace(/\s+/g, ''); // Elimina espacios
     const formattedTelefono = cleanedPhone.startsWith('+52') ? cleanedPhone : `+52${cleanedPhone}`;
     if (formattedTelefono.length !== 13) { // +52 y 10 dígitos
@@ -61,30 +65,37 @@ export default function Register() {
         return;
     }
 
-    // Si todas las validaciones pasan, continuamos
-    router.push({
-      pathname: '/user',
-      params: {
-        nombre,
-        telefono: formattedTelefono,
-        fechaNacimiento: formatApiDate(date),
-        email,
-        password, // Nota: En una app real, evita pasar contraseñas así.
-      },
-    });
+    try {
+      await sendCode({ email });
+      Alert.alert("Codigo enviado", "Revisa tu correo e ingresa el codigo de verificacion.");
+      // Persistimos el telefono formateado para usarlo en el registro final despues de verificar codigo.
+      setTelefono(formattedTelefono);
+      router.push('/verificacion');
+    } catch (error) {
+      const errorMessage = error.message || "Ocurrió un error desconocido.";
+      Alert.alert("Error al enviar codigo", errorMessage);
+    }
   };
 
   return (
-    <View style={styles.container}>
+    <ImageBackground
+      source={require('../../assets/fondo.jpg')}
+      style={styles.backgroundImage}
+      resizeMode="cover"
+    >
+      <View style={styles.container}>
 
-      <Text style={styles.title}>Registro de Usuario</Text>
+      <Text style={styles.title}>
+        <Text style={styles.welcomeText}>Registro de</Text>{"\n"}
+        <Text style={styles.brandText}>Usuario</Text>
+      </Text>
 
       {/* NOMBRE */}
       <TextInput
         style={styles.input}
         placeholder="Nombre completo"
-        value={nombre}
-        onChangeText={setNombre}
+        value={name}
+        onChangeText={setName}
         placeholderTextColor="#999"
       />
 
@@ -152,37 +163,57 @@ export default function Register() {
       <TouchableOpacity
         style={styles.buttonPrimary} 
         onPress={handleRegister}
+        disabled={loading}
       >
-        <Text style={styles.buttonPrimaryText}>Continuar</Text>
+        <Text style={styles.buttonPrimaryText}>{loading ? "Registrando..." : "Registrarse"}</Text>
       </TouchableOpacity>
+
+      {loading && <ActivityIndicator style={{ marginTop: 20 }} size="large" color="#4CAFED" />}
 
       {/* VOLVER */}
-      <TouchableOpacity onPress={() => router.push('/login')}>
-        <Text style={styles.backToLogin}>Volver al inicio</Text>
+      <TouchableOpacity onPress={() => router.push('/user')} disabled={loading}>
+        <Text style={styles.backToLogin}>Volver a seleccionar rol</Text>
       </TouchableOpacity>
 
-    </View>
+      </View>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
+  backgroundImage: {
+    flex: 1,
+  },
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255, 255, 255, 0.7)', // Capa consistente con login y user
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 20,
   },
 
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
+    textAlign: 'center',
     marginBottom: 30,
   },
 
+  welcomeText: {
+    fontSize: 22,
+    fontWeight: '400',
+    color: '#666666',
+    lineHeight: 28,
+  },
+
+  brandText: {
+    fontSize: 36,
+    fontWeight: '900',
+    color: '#072B66',
+    lineHeight: 42,
+    letterSpacing: -1,
+  },
+
   input: {
-    width: '100%',
+    width: '95%',
     height: 50,
     borderWidth: 1,
     borderColor: '#CCC',
@@ -195,7 +226,7 @@ const styles = StyleSheet.create({
   },
 
   buttonPrimary: {
-    width: '100%',
+    width: '95%',
     height: 50,
     backgroundColor: '#4CAFED',
     borderRadius: 10,

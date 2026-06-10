@@ -1,12 +1,13 @@
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView, Alert, Switch, Platform, TextInput } from "react-native";
-import { Stack, useRouter } from "expo-router";
-import { useState, useEffect } from "react";
-import { useAuth } from "../../../../../src/context/AuthContext";
-import { getScheduleByUserId, updateSchedule, createSchedule } from "../../../../../src/services/scheduleService";
-import { getDoctorByUserId } from "../../../../../src/services/doctorService";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { FontAwesome } from "@expo/vector-icons";
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { Stack, useRouter } from "expo-router";
+import { useEffect, useState } from "react";
+import { ActivityIndicator, Alert, Platform, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useAuth } from "../../../../../src/context/AuthContext";
+import { useTheme } from "../../../../../src/context/ThemeContext";
+import { getDoctorByUserId } from "../../../../../src/services/doctorService";
+import { createSchedule, getScheduleByUserId, updateSchedule } from "../../../../../src/services/scheduleService";
 
 // Mapeo: Abreviatura (para el botón) -> Nombre completo (para el estado de datos)
 const DIAS_MAP = {
@@ -52,17 +53,10 @@ const initialScheduleState = ALL_DAYS.reduce((acc, day) => {
   };
   return acc;
 }, {});
-
-// Colores:
-const ACCENT_COLOR = "#3F51B5"; // Azul índigo
-const ACTIVE_BG_COLOR = "#E8EAF6";
-const INACTIVE_BG_COLOR = "#F5F5F5";
-const TEXT_DARK = "#212121";
-const TEXT_MUTED = "#757575";
-
 export default function Horarios() {
   const router = useRouter();
   const { user } = useAuth();
+  const { colors, isDarkMode } = useTheme();
 
   const [doctorProfile, setDoctorProfile] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -213,34 +207,34 @@ export default function Horarios() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={ACCENT_COLOR} />
-        <Text style={{ marginTop: 10 }}>Cargando horario...</Text>
+      <SafeAreaView style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={{ marginTop: 10, color: colors.text }}>Cargando horario...</Text>
       </SafeAreaView>
     );
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+    <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={styles.contentContainer}>
       <Stack.Screen options={{ headerShown: false }} />
 
       {/* Cabecera */}
       <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-        <Text style={styles.backButtonText}>← Panel de Control</Text>
+        <Text style={[styles.backButtonText, { color: colors.primary }]}>← Panel de Control</Text>
       </TouchableOpacity>
-      <Text style={styles.title}>Mi Horario de Atención</Text>
-      <View style={styles.separator} />
+      <Text style={[styles.title, { color: colors.text }]}>Mi Horario de Atención</Text>
+      <View style={[styles.separator, { backgroundColor: colors.border }]} />
 
       {error && <Text style={styles.errorText}>{error}</Text>}
 
       {/* Tiempo de Consulta */}
       <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Tiempo de Consulta (minutos)</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>Tiempo de Consulta (minutos)</Text>
         {scheduleExists ? (
-          <Text style={styles.readOnlyText}>{consultationTime}</Text>
+          <Text style={[styles.readOnlyText, { color: colors.subtitle }]}>{consultationTime}</Text>
         ) : (
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: colors.card, color: colors.text, borderColor: colors.border }]}
             value={consultationTime}
             onChangeText={setConsultationTime}
             keyboardType="numeric"
@@ -248,45 +242,45 @@ export default function Horarios() {
           />
         )}
       </View>
-      <View style={styles.separator} />
+      <View style={[styles.separator, { backgroundColor: colors.border }]} />
 
       {ALL_DAYS.map(day => {
         const config = scheduleConfig[day];
         return (
-          <View key={day} style={styles.dayCard}>
+          <View key={day} style={[styles.dayCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <View style={styles.dayHeader}>
-              <Text style={styles.dayTitle}>{day}</Text>
+              <Text style={[styles.dayTitle, { color: colors.text }]}>{day}</Text>
               <Switch
-                trackColor={{ false: INACTIVE_BG_COLOR, true: ACCENT_COLOR }}
+                trackColor={{ false: isDarkMode ? '#2D3748' : '#EEEEEE', true: colors.primary }}
                 thumbColor={"#fff"}
                 value={config.active}
                 onValueChange={(value) => handleDayToggle(day, value)}
               />
             </View>
             {config.active && (
-              <View style={styles.detailsContainer}>
+              <View style={[styles.detailsContainer, { borderTopColor: colors.border }]}>
                 {/* Horario de Trabajo */}
                 <View style={styles.timeRow}>
-                  <FontAwesome name="clock-o" size={16} color={TEXT_DARK} style={styles.timeIcon} />
-                  <Text style={styles.timeLabel}>Trabajo:</Text>
+                  <FontAwesome name="clock-o" size={16} color={colors.primary} style={styles.timeIcon} />
+                  <Text style={[styles.timeLabel, { color: colors.text }]}>Trabajo:</Text>
                   <TouchableOpacity onPress={() => showTimePicker(day, 'startTime', config.startTime)}>
-                    <Text style={styles.timeValue}>{config.startTime}</Text>
+                    <Text style={[styles.timeValue, { color: colors.primary }]}>{config.startTime}</Text>
                   </TouchableOpacity>
-                  <Text style={styles.timeSeparator}>-</Text>
+                  <Text style={[styles.timeSeparator, { color: colors.text }]}>-</Text>
                   <TouchableOpacity onPress={() => showTimePicker(day, 'endTime', config.endTime)}>
-                    <Text style={styles.timeValue}>{config.endTime}</Text>
+                    <Text style={[styles.timeValue, { color: colors.primary }]}>{config.endTime}</Text>
                   </TouchableOpacity>
                 </View>
                 {/* Horario de Descanso */}
                 <View style={styles.timeRow}>
-                  <FontAwesome name="coffee" size={16} color={TEXT_MUTED} style={styles.timeIcon} />
-                  <Text style={styles.timeLabel}>Descanso:</Text>
+                  <FontAwesome name="coffee" size={16} color={colors.subtitle} style={styles.timeIcon} />
+                  <Text style={[styles.timeLabel, { color: colors.subtitle }]}>Descanso:</Text>
                   <TouchableOpacity onPress={() => showTimePicker(day, 'breakStartTime', config.breakStartTime)}>
-                    <Text style={styles.timeValue}>{config.breakStartTime}</Text>
+                    <Text style={[styles.timeValue, { color: colors.primary }]}>{config.breakStartTime}</Text>
                   </TouchableOpacity>
-                  <Text style={styles.timeSeparator}>-</Text>
+                  <Text style={[styles.timeSeparator, { color: colors.subtitle }]}>-</Text>
                   <TouchableOpacity onPress={() => showTimePicker(day, 'breakEndTime', config.breakEndTime)}>
-                    <Text style={styles.timeValue}>{config.breakEndTime}</Text>
+                    <Text style={[styles.timeValue, { color: colors.primary }]}>{config.breakEndTime}</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -305,11 +299,11 @@ export default function Horarios() {
         />
       )}
 
-      <TouchableOpacity style={styles.confirmButton} onPress={handleGuardarCambios} disabled={isSaving}>
+      <TouchableOpacity style={[styles.confirmButton, { backgroundColor: colors.primary }]} onPress={handleGuardarCambios} disabled={isSaving}>
         {isSaving ? (
-          <ActivityIndicator color="#fff" />
+          <ActivityIndicator color={colors.white} />
         ) : (
-          <Text style={styles.confirmButtonText}>Guardar Horarios</Text>
+          <Text style={[styles.confirmButtonText, { color: colors.white }]}>Guardar Horarios</Text>
         )}
       </TouchableOpacity>
     </ScrollView>
@@ -327,27 +321,23 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     marginBottom: 10,
   },
-  backButtonText: { color: ACCENT_COLOR, fontSize: 16, fontWeight: "700" },
+  backButtonText: { fontSize: 16, fontWeight: "700" },
   title: {
     fontSize: 28,
     fontWeight: "700",
-    color: TEXT_DARK,
     marginBottom: 15,
     textAlign: "center",
   },
   separator: { height: 1, backgroundColor: '#EEEEEE', marginVertical: 25 },
   input: {
-    backgroundColor: INACTIVE_BG_COLOR,
     padding: 12,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#E0E0E0',
     fontSize: 16,
-    color: TEXT_DARK,
   },
   readOnlyText: {
     fontSize: 16,
-    color: TEXT_MUTED,
     padding: 12,
   },
   dayCard: {
@@ -366,7 +356,6 @@ const styles = StyleSheet.create({
   dayTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: TEXT_DARK,
   },
   detailsContainer: {
     borderTopWidth: 1,
@@ -385,11 +374,9 @@ const styles = StyleSheet.create({
   timeLabel: {
     marginLeft: 10,
     fontSize: 15,
-    color: TEXT_DARK,
     width: 70, // Ancho fijo para alinear los horarios
   },
   timeValue: {
-    color: ACCENT_COLOR,
     fontWeight: '600',
     fontSize: 15,
     textDecorationLine: 'underline',
@@ -397,11 +384,9 @@ const styles = StyleSheet.create({
   },
   timeSeparator: {
     fontSize: 15,
-    color: TEXT_DARK,
     marginHorizontal: 5,
   },
   confirmButton: {
-    backgroundColor: ACCENT_COLOR,
     padding: 18,
     borderRadius: 12,
     alignItems: "center",

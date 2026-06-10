@@ -19,6 +19,37 @@ export const findByPatient = async (patientId) => {
 };
 
 /**
+ * Busca todas las citas de un paciente específico. (GET /appointment/patient/:patientId)
+ * @param {string} patientId - El ID del paciente.
+ * @returns {Promise<Array<object>>} Una lista de las citas encontradas para el paciente.
+ */
+export const findByPatientPagination = async (patientId,page,pageSize) => {
+  try {
+    // Hacemos la petición al endpoint del backend
+    const response = await api.get(`${APPOINTMENT_BASE_PATH}/patient/${patientId}/${page}/${pageSize}`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error al buscar citas para el paciente ${patientId}:`, error.response ? error.response.data : error);
+    throw error.response ? error.response.data : error;
+  }
+};
+
+/**
+ * Busca todas las citas de un doctor específico. (GET /appointment/doctor/:doctorId)
+ * @param {string} doctorId - El ID del doctor.
+ * @returns {Promise<Array<object>>} Una lista de las citas encontradas para el doctor.
+ */
+export const findByDoctorPagination = async (doctorId,page,pageSize) => {
+  try {
+    const response = await api.get(`${APPOINTMENT_BASE_PATH}/doctor/${doctorId}/${page}/${pageSize}`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error al buscar citas para el doctor ${doctorId}:`, error.response ? error.response.data : error);
+    throw error.response ? error.response.data : error;
+  }
+};
+
+/**
  * Busca todas las citas de un doctor específico. (GET /appointment/doctor/:doctorId)
  * @param {string} doctorId - El ID del doctor.
  * @returns {Promise<Array<object>>} Una lista de las citas encontradas para el doctor.

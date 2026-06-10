@@ -33,3 +33,7 @@ export function CitaProvider({ children }) {
     </CitaContext.Provider>
   );
 }
+
+export default function CitaContextRoute() {
+  return null;
+}

@@ -1,11 +1,11 @@
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 
-const LOCAL = '192.168.0.27:3000';
-// const WEB = 'server-heald.onrender.com'; 
+const LOCAL = '192.168.0.141:3000';
+const WEB = 'server-heald-production-a5c8.up.railway.app'; 
 // const PROD = 'server.rivascript';
 
-const API_BASE_URL = `http://${LOCAL}`;
+const API_BASE_URL = `https://${WEB}`;
 
 const api = axios.create({
   baseURL: API_BASE_URL,

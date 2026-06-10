@@ -1,88 +1,67 @@
-import { router, useLocalSearchParams } from "expo-router";
-import { useState } from "react";
-import { ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { registerUser } from "../../src/services/userServices";
+import { router } from "expo-router";
+import { ImageBackground, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useRegisterStore } from "../../src/store/register.store";
 
 export default function User() {
-  // 1. Recibimos los parámetros de la pantalla de registro
-  const registrationData = useLocalSearchParams();
-  const [loading, setLoading] = useState(false);
+  const { setRole } = useRegisterStore();
 
-  // 2. Creamos una función para manejar la selección del tipo de usuario
-  const handleUserTypeSelection = async (userType) => {
-    const userData = {
-      name: registrationData.nombre,
-      email: registrationData.email,
-      password: registrationData.password,
-      phoneNumber: registrationData.telefono, // Asegúrate que el formato sea el esperado por tu API
-      birthDate: registrationData.fechaNacimiento,
-      role: userType, // 'CLIENT' o 'DOCTOR'
-    };
-
-    console.log("Enviando datos a la API:", userData);
-
-    setLoading(true);
-    try {
-      await registerUser(userData);
-      Alert.alert(
-        "Registro Exitoso",
-        "Tu cuenta ha sido creada. Ahora puedes iniciar sesión."
-      );
-      // 3. Navegamos a login después del registro exitoso
-      router.push("/login");
-    } catch (error) {
-      const errorMessage = error.message || "Ocurrió un error desconocido.";
-      Alert.alert("Error de Registro", errorMessage);
-      console.error("Detalles del error de registro:", error);
-    } finally {
-      setLoading(false);
-    }
+  const handleUserTypeSelection = (userType) => {
+    setRole(userType);
+    router.push('/Register');
   };
 
   return (
-    <View style={styles.container}>
-    
-    <Text style={styles.title}>Selecciona tu tipo de usuario</Text>
+    <ImageBackground
+      source={require('../../assets/fondo.jpg')}
+      style={styles.backgroundImage}
+      resizeMode="cover"
+    >
+      <View style={styles.container}>
+      
+        <Text style={styles.title}>Selecciona tu tipo de usuario</Text>
 
-      {/* BOTÓN PACIENTE */}
-    <TouchableOpacity style={styles.button} onPress={() => handleUserTypeSelection('CLIENT')} disabled={loading}>
-        <Text style={styles.buttonText}>Soy Paciente</Text>
-    </TouchableOpacity>
+        {/* BOTÓN PACIENTE */}
+        <TouchableOpacity style={styles.button} onPress={() => handleUserTypeSelection('CLIENT')}>
+            <Text style={styles.buttonText}>Soy Paciente</Text>
+        </TouchableOpacity>
 
-      {/* BOTÓN DOCTOR */}
-    <TouchableOpacity style={styles.button} onPress={() => handleUserTypeSelection('DOCTOR')} disabled={loading}>
-        <Text style={styles.buttonText}>Soy Doctor</Text>
-    </TouchableOpacity>
+        {/* BOTÓN DOCTOR */}
+        <TouchableOpacity style={styles.button} onPress={() => handleUserTypeSelection('DOCTOR')}>
+            <Text style={styles.buttonText}>Soy Doctor</Text>
+        </TouchableOpacity>
 
-    {loading && <ActivityIndicator style={{ marginTop: 20 }} size="large" color="#3B82F6" />}
-
-    </View>
-);
+      </View>
+    </ImageBackground>
+  );
 }
 
 const styles = StyleSheet.create({
-container: {
+  backgroundImage: {
+    flex: 1,
+  },
+  container: {
     flex: 1,
     justifyContent: "center",
     padding: 25,
-    backgroundColor: "#F5F5F5",
-},
-title: {
+    backgroundColor: 'rgba(255, 255, 255, 0.7)', // Capa consistente con el login
+  },
+  title: {
     textAlign: "center",
-    fontSize: 22,
-    fontWeight: "700",
+    fontSize: 28,
+    fontWeight: "900",
     marginBottom: 40,
-},
-button: {
-    backgroundColor: "#3B82F6",
+    color: "#072B66", // Azul oscuro de la marca
+  },
+  button: {
+    backgroundColor: "#4CAFED", // Azul claro consistente
     paddingVertical: 15,
     borderRadius: 12,
     marginBottom: 20,
-},
-buttonText: {
+  },
+  buttonText: {
     color: "#FFF",
     fontSize: 18,
     fontWeight: "700",
     textAlign: "center",
-},
+  },
 });

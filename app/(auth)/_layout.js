@@ -1,4 +1,4 @@
-import { Stack, Redirect } from "expo-router";
+import { Redirect, Stack } from "expo-router";
 import { useAuth } from "../../src/context/AuthContext";
 
 export default function AuthLayout() {
@@ -12,9 +12,12 @@ export default function AuthLayout() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="login" />
       <Stack.Screen name="Register" />
-      <Stack.Screen name="registrocons" />
-      <Stack.Screen name="registrover2" />
       <Stack.Screen name="user" />
+      <Stack.Screen name="verificacion" />
+      <Stack.Screen name="politicasprivaci" />
+      <Stack.Screen name="recuperar-contrasena" />
+      <Stack.Screen name="ingresar-codigo" />
+      <Stack.Screen name="nueva-contrasena" />
     </Stack>
   );
 }

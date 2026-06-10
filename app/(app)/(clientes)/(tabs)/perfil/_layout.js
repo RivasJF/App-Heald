@@ -7,11 +7,7 @@ export default function PerfilLayout() {
           headerShown: false,
         }}
       >
-        {/* El screen index se renderiza primero */}
         <Stack.Screen name="perfil" />
-        {/* Las demás pantallas con presentación modal opcional */}
-        <Stack.Screen name="configuracion" />
-
       </Stack>
   );
 }
